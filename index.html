@@ -1,0 +1,1399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hanzi Rail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@500;700&display=swap">
+<style>
+/* Layout: one column workbench. A DIN-rail strip holds the sentence; colour-coded terminal blocks wait in a tray below it. */
+:root{
+  --bg:oklch(0.972 0.007 250);
+  --surface:oklch(0.995 0.003 250);
+  --surface2:oklch(0.945 0.01 250);
+  --fg:oklch(0.23 0.025 258);
+  --muted:oklch(0.48 0.025 258);
+  --line:oklch(0.87 0.014 255);
+  --rail:oklch(0.8 0.015 255);
+  --rail-hole:oklch(0.69 0.02 255);
+  --ok:oklch(0.5 0.15 150);
+  --bad:oklch(0.54 0.2 27);
+  --band-l:.47; --band-c:.15; --band-fg:#fff;
+  --tint-l:.95; --tint-c:.035; --edge-l:.8;
+  --btn-bg:var(--fg); --btn-fg:var(--bg);
+  --shadow:0 1px 0 oklch(0.8 0.01 255), 0 6px 14px -8px oklch(0.3 0.03 258 / .35);
+  --f-display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-zh:'Noto Sans SC','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:oklch(0.2 0.02 258); --surface:oklch(0.25 0.022 258); --surface2:oklch(0.29 0.024 258);
+    --fg:oklch(0.95 0.01 255); --muted:oklch(0.74 0.02 255); --line:oklch(0.38 0.025 258);
+    --rail:oklch(0.42 0.02 258); --rail-hole:oklch(0.31 0.02 258);
+    --ok:oklch(0.8 0.15 150); --bad:oklch(0.76 0.16 27);
+    --band-l:.76; --band-c:.13; --band-fg:oklch(0.2 0.02 258);
+    --tint-l:.3; --tint-c:.06; --edge-l:.5;
+    --shadow:0 1px 0 oklch(0.15 0.02 258), 0 6px 14px -8px oklch(0.1 0.02 258 / .8);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:oklch(0.2 0.02 258); --surface:oklch(0.25 0.022 258); --surface2:oklch(0.29 0.024 258);
+  --fg:oklch(0.95 0.01 255); --muted:oklch(0.74 0.02 255); --line:oklch(0.38 0.025 258);
+  --rail:oklch(0.42 0.02 258); --rail-hole:oklch(0.31 0.02 258);
+  --ok:oklch(0.8 0.15 150); --bad:oklch(0.76 0.16 27);
+  --band-l:.76; --band-c:.13; --band-fg:oklch(0.2 0.02 258);
+  --tint-l:.3; --tint-c:.06; --edge-l:.5;
+  --shadow:0 1px 0 oklch(0.15 0.02 258), 0 6px 14px -8px oklch(0.1 0.02 258 / .8);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:400 16px/1.5 var(--f-display)}
+.wrap{max-width:920px;margin:0 auto;padding-inline:16px;padding-block:16px 56px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:26px}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;padding:4px 0;cursor:pointer;font:700 22px/1 var(--f-display);letter-spacing:-.01em}
+.mark{display:flex;gap:3px}
+.mark i{width:9px;height:20px;border-radius:2px;background:oklch(var(--band-l) var(--band-c) var(--h))}
+.toggles{display:flex;gap:8px}
+.sw{position:relative}
+.sw input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.sw span{display:block;border:1.5px solid var(--line);border-radius:99px;padding:6px 13px;font:500 12px/1 var(--f-mono);letter-spacing:.04em;background:var(--surface)}
+.sw input:checked+span{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.sw input:focus-visible+span{outline:2px solid var(--fg);outline-offset:2px}
+
+/* type */
+.eyebrow{font:500 11px/1.2 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0}
+h1{font:700 clamp(30px,6vw,46px)/1.05 var(--f-display);letter-spacing:-.02em;margin:8px 0 12px;text-wrap:balance}
+h2{font:600 18px/1.3 var(--f-display);margin:0 0 4px;text-wrap:balance}
+.lead{max-width:62ch;margin:0 0 4px;color:var(--fg)}
+.muted{color:var(--muted)}
+section{margin-block:28px}
+
+/* buttons */
+.btn{background:var(--btn-bg);color:var(--btn-fg);border:0;border-radius:8px;padding:12px 22px;font:600 15px/1 var(--f-display);cursor:pointer}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn2{background:transparent;border:1.5px solid var(--line);border-radius:8px;padding:11px 18px;font:500 14px/1 var(--f-display);cursor:pointer}
+.btn2:hover{border-color:var(--muted)}
+.back{background:none;border:0;padding:4px 0;cursor:pointer;font:500 13px/1 var(--f-mono);color:var(--muted)}
+.back:hover{color:var(--fg)}
+.linkbtn{background:none;border:0;padding:0;cursor:pointer;font:400 13px/1.4 var(--f-display);color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+
+/* role chips */
+.chip{display:inline-flex;align-items:baseline;gap:7px;padding:6px 11px;border-radius:6px;background:oklch(var(--tint-l) var(--tint-c) var(--h));border:1.5px solid oklch(var(--edge-l) .08 var(--h));border-left:6px solid oklch(var(--band-l) var(--band-c) var(--h));font:500 12px/1.2 var(--f-mono);letter-spacing:.03em}
+.chip em{font:700 15px/1 var(--f-zh);font-style:normal;letter-spacing:0}
+.chip.sm{padding:3px 7px;font-size:10px;border-left-width:5px}
+.chip.sm em{font-size:12px}
+.pattern{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-block:10px}
+.plus{color:var(--muted);font:500 14px/1 var(--f-mono)}
+.key{display:flex;flex-wrap:wrap;gap:8px}
+
+/* level list */
+.levels{display:grid;gap:10px;margin-top:14px}
+.lvl{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer}
+.lvl:hover:not(:disabled){border-color:var(--muted)}
+.lvl:disabled{opacity:.5;cursor:not-allowed}
+.lvl-n{font:500 13px/1 var(--f-mono);color:var(--muted)}
+.lvl-main{min-width:0}
+.lvl-main b{display:block;font-weight:600;margin-bottom:6px}
+.mini{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.lvl-st{font:500 11px/1.2 var(--f-mono);color:var(--muted);text-align:right}
+
+/* terminal blocks */
+.tile{--band:oklch(var(--band-l) var(--band-c) var(--h));--tint:oklch(var(--tint-l) var(--tint-c) var(--h));--edge:oklch(var(--edge-l) .08 var(--h));
+  display:flex;flex-direction:column;min-width:70px;border-radius:7px;background:var(--tint);border:1.5px solid var(--edge);box-shadow:var(--shadow);overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;text-align:center}
+.tile .band{background:var(--band);color:var(--band-fg);font:500 9.5px/1 var(--f-mono);letter-spacing:.09em;text-transform:uppercase;padding:5px 6px}
+.tile .zh{font:700 28px/1.2 var(--f-zh);padding:8px 10px 6px;white-space:nowrap}
+.tile .py{font:400 11.5px/1.2 var(--f-mono);color:var(--muted);padding:0 8px 6px}
+.tile .en{font:400 11px/1.25 var(--f-display);color:var(--muted);padding:0 8px 7px;max-width:110px;margin-inline:auto}
+body[data-py="0"] .py{display:none}
+body[data-en="0"] .tile .en{display:none}
+.tile.static{cursor:default}
+.tile.hint{outline:3px solid var(--fg);outline-offset:2px}
+.tile.dragging{opacity:.25}
+.tile.ghost{position:fixed;left:0;top:0;z-index:99;pointer-events:none;opacity:.96;box-shadow:0 14px 24px -10px oklch(0.2 0.03 258 / .55);cursor:grabbing}
+.tiles{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+
+/* rail and slots */
+.rail{display:flex;flex-wrap:wrap;gap:10px;position:relative;padding:14px 14px 30px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px}
+.rail::after{content:"";position:absolute;left:10px;right:10px;bottom:12px;height:9px;border-radius:3px;background:repeating-linear-gradient(90deg,var(--rail) 0 18px,var(--rail-hole) 18px 30px)}
+.rail.flat{display:inline-flex;max-width:100%}
+.slot{display:flex;flex-direction:column;gap:6px;align-items:center;position:relative;z-index:1}
+.slot-label{display:flex;align-items:center;gap:5px;font:500 10px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.slot-label i{width:8px;height:8px;border-radius:2px;background:oklch(var(--band-l) var(--band-c) var(--h))}
+.slot.neutral .slot-label i{background:var(--rail)}
+.well{position:relative;min-width:86px;min-height:104px;border-radius:9px;border:1.5px dashed oklch(var(--edge-l) .08 var(--h));display:flex;align-items:center;justify-content:center;background:color-mix(in oklch,var(--surface) 70%,oklch(var(--tint-l) var(--tint-c) var(--h)))}
+.slot.neutral .well{border-color:var(--rail);background:var(--surface)}
+.well.filled{border-color:transparent;background:transparent}
+.slot.over .well{border-style:solid;background:oklch(var(--tint-l) var(--tint-c) var(--h))}
+.slot.ok .well{outline:2.5px solid var(--ok);outline-offset:1px}
+.slot.bad .well{outline:2.5px solid var(--bad);outline-offset:1px}
+.slot.ok .well::after,.slot.bad .well::after{position:absolute;top:-9px;right:-9px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 var(--f-display);color:var(--bg);z-index:3}
+.slot.ok .well::after{content:"\2713";background:var(--ok)}
+.slot.bad .well::after{content:"\2717";background:var(--bad)}
+.slot.hint .well{outline:3px solid var(--fg);outline-offset:2px}
+.bank{display:flex;flex-wrap:wrap;gap:10px;min-height:128px;padding:14px;border:1.5px dashed var(--line);border-radius:12px;background:var(--surface2);align-items:flex-start}
+.bank.over{border-style:solid;border-color:var(--muted)}
+.bank-empty{color:var(--muted);font-size:13px;align-self:center;margin-inline:auto}
+
+/* play */
+.playbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.dots{display:flex;gap:3px;margin-top:12px}
+.dots i{height:5px;flex:1 1 0;min-width:0;max-width:24px;border-radius:3px;background:var(--line)}
+.dots i.miss{background:var(--bad)}
+.dots i.cur{background:var(--muted)}
+.dots i.clean{background:var(--ok)}
+.dots i.assisted{background:var(--rail-hole)}
+.prompt h2{font:600 clamp(22px,4.6vw,32px)/1.2 var(--f-display);letter-spacing:-.01em;margin:8px 0 0}
+.prompt .sub{margin:6px 0 0;color:var(--muted);font-size:14px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:20px}
+.actions .spacer{flex:1}
+.fb{margin-top:18px;min-height:24px}
+.fb-idle{color:var(--muted);font-size:14px;margin:0}
+.fb-bad{margin:0;color:var(--bad);font-weight:500}
+.okcard{border:1.5px solid var(--ok);border-radius:10px;padding:14px 16px;background:var(--surface)}
+.okcard .tag{font:500 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ok);margin:0 0 8px}
+.zhline{font:700 clamp(22px,5vw,30px)/1.3 var(--f-zh);margin:0;letter-spacing:.04em}
+.pyline{font:400 14px/1.4 var(--f-mono);color:var(--muted);margin:2px 0 0}
+.enline{margin:8px 0 0}
+.note{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line);color:var(--muted);font-size:14px;max-width:64ch}
+
+/* done */
+.review{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+.review li{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border:1.5px solid var(--line);border-radius:9px}
+.review .zh{font:700 20px/1.3 var(--f-zh);letter-spacing:.04em}
+.review .enl{color:var(--muted);font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+
+/* recognition game */
+.sets{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:14px}
+.setbtn{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:13px 15px;cursor:pointer}
+.setbtn:hover{border-color:var(--muted)}
+.setbtn b{font-weight:600}
+.setbtn span{font:500 11px/1.3 var(--f-mono);color:var(--muted)}
+.rq{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:10px;padding:28px 16px 24px;min-height:210px;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;text-align:center}
+.rq .big{font:700 clamp(64px,18vw,112px)/1.1 var(--f-zh);letter-spacing:.02em}
+.rq .py{font:400 20px/1.2 var(--f-mono);color:var(--muted)}
+.rq .meaning{font:600 20px/1.3 var(--f-display)}
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+.choice{min-height:58px;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);cursor:pointer;font:500 16px/1.3 var(--f-display);text-align:center;overflow-wrap:anywhere}
+.choice:hover{border-color:var(--muted)}
+.choice.right{border-color:var(--ok);outline:2px solid var(--ok)}
+.choice.wrong{border-color:var(--bad);outline:2px solid var(--bad)}
+.choice[aria-disabled="true"]{cursor:default}
+.v-ok{margin:0;color:var(--ok);font-weight:600}
+
+/* top bar: tips, feedback and page links */
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-bottom:10px}
+.tb-group{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.tipbtn{display:inline-flex;align-items:center;gap:9px;min-height:44px;padding:8px 14px 8px 9px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);text-decoration:none;font:500 14px/1 var(--f-display)}
+.tipbtn:hover{border-color:var(--muted)}
+.tipbtn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.tipbtn img{display:block;flex:none;width:26px;height:26px;border-radius:6px}
+.tipbtn.feedback{padding:8px 18px;background:var(--ok);border-color:var(--ok);color:var(--bg);font-weight:600}
+.tipbtn.feedback:hover{filter:brightness(1.08)}
+.navlink{min-height:44px;padding:0 8px;border:0;background:none;color:var(--muted);font:500 13px/1 var(--f-mono);text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+.navlink:hover{color:var(--fg)}
+
+/* night train backdrop and its controls */
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:1}
+.top{position:relative}
+.scene summary{list-style:none;cursor:pointer;border:1.5px solid var(--line);border-radius:99px;padding:6px 13px;font:500 12px/1 var(--f-mono);letter-spacing:.04em;background:var(--surface)}
+.scene summary::-webkit-details-marker{display:none}
+.scene[open] summary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.scene summary:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.scene-panel{position:absolute;left:0;right:0;top:100%;margin-top:8px;z-index:20;display:flex;flex-wrap:wrap;gap:14px 28px;padding:14px 16px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.scene-panel label{display:flex;flex-direction:column;gap:6px;flex:1 1 200px;font:500 12px/1.2 var(--f-mono);letter-spacing:.04em;color:var(--muted)}
+.scene-panel label b{color:var(--fg);font-weight:500}
+.scene-panel input[type=range]{width:100%;min-height:28px;accent-color:var(--fg)}
+
+/* statement page */
+.pledge{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px;max-width:62ch}
+.pledge li{padding:12px 16px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px}
+
+/* pace: relaxed or timed */
+.pace{display:inline-flex;gap:2px;margin-top:10px;padding:3px;border:1.5px solid var(--line);border-radius:99px;background:var(--surface)}
+.pace button{border:0;background:transparent;color:var(--muted);padding:10px 18px;border-radius:99px;font:500 13px/1 var(--f-mono);letter-spacing:.04em;cursor:pointer}
+.pace button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.clock{font:500 15px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.timeline{margin:6px 0 0;font:500 14px/1.4 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.timeline b{color:var(--fg)}
+@media (max-width:520px){
+  .choices{grid-template-columns:1fr}
+  .tile{min-width:64px}
+  .tile .zh{font-size:25px}
+  .well{min-width:76px}
+  .lvl{grid-template-columns:26px minmax(0,1fr)}
+  .lvl-st{grid-column:2;text-align:left}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="wrap">
+  <nav class="topbar" aria-label="Support, feedback and pages">
+    <div class="tb-group">
+      <a class="tipbtn" href="https://buymeacoffee.com/inventing223" target="_blank" rel="noopener noreferrer"><img src="data:image/png;base64,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" alt="" width="26" height="26"><span>Buy Me a Coffee</span></a>
+      <a class="tipbtn" href="https://ko-fi.com/inventing" target="_blank" rel="noopener noreferrer"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAANf0lEQVR42u1ae2xUZRY/9zHvdh6dzkyn2O08OrVAQZLyEENXWWgW7NI1KgRFikHl0a0LWQnoZvlDRUxcqU2aRYKr6wohduNGQLKFAFoIW/oHSFMWiEjLFrAUKNOZO53XfXx3/zjt5c50+gC6uyHh/HEznfn6fed33ud8l5JlGR5kouEBp4cAHgJ4COABJ3ZcdrnbWExR1HgBoMZytqwiPB45UD7cD+yhO9/VtqMAIITIsswwzMh8kEFSWMkocoqiaJrGJ02PZL2SJAEALr53E5IkCVnnef7HH3/s7Ozs7u6+efNmMBjkOC4ajcbj8WQyKQiCKIqSJCkAhmJQ5ErTNMMwDMOwLKvT6fR6vclkslgsdrvd4XBMmDDB5/P5fD6j0ZjGw91pQJZlhN7R0bF79+4jR450dXXFYjEUjCJCKpVGMHH1KQpCBKw8UeRGozE/P3/69OmVlZUVFRUajUaxrrECQO4lSfrwww937twZDAaNRqNOp1MUOo4uONTTCCE8z8fjcYqiSktLa2pqlixZgmgzWl06AOQ+HA6/+uqrhw4dstvtLMsSQpBpQog0SGqjTxPwqJFH7RJIzCDRNK3sEIvF4vF4ZWVlXV2d0+nMiIEaqtxkMvnCCy80Nzc7nU5RFGmaFgQhGo0SQgwGQ3Z2ttlstlgs2dnZJpPJYDBotVqtVsuyLB6fUU6KdBG8KIo8zycSiVgsFo1GI5FIJBLhOI7jOEEQdDqdyWQayFM0ffv27UAgsGfPHr/fPxRDCgD0mDfffHP79u1ut5vneYZhQqGQ3W6fO3dueXl5SUmJ2+22Wq2Kk40LSZIUjUaDwWBHR8epU6eam5vb2tokSTKbzZIkaTSaUCjk8XgOHDjgcDhkWU7BoNiAKIqyLLe2tjocDr/f7/F4fD6f3W6vqam5fPmyPIRQnOJ9EGoj487Hjx9/7rnncnJyvF6vx+MJBAI2m2358uV4aEpeUj7hD8uWLcvNzfX7/X6/3263b9myRYGnxEq16Y8LpclC+f6jjz5yOByIoaioyGq17tu3T5F1CgDkvqOjw+PxeDwev9/vdDqfffZZXJ1BToTIkiCLgiyJA880VITI4ogLUgGoDYEQoiBpaGjIycnx+/0+n8/lci1YsAAXKOtpJeMCwLFjx0KhEMuyuOnrr7+ueFJqfpaAooBmgWGBZgaeFAWEpCxghi6QhgtQPT09PT09AIBpC+OBKIq1tbXz58/nOI6iKJPJ1NbW1tbWRlEUGTyLVce177//HnlNJpNer3fWrFkZuJcJ0AxEgnD6IHScgWgYTGYITIeZi0BvAiIBUEAzEA1B637oPAPxKJjtUDwDyhaAzgiEgGpDDBv19fV1dXXZ2dlut3vFihVo65h2ZFmura397rvv0HcTiURzc3NZWZkSjli1jLu6uliWpSgqmUwGAgGDwZAetogENANH/wpfboFbVxA6YBx7pARW1cPUuQAArfvgL5ugpxMoGigAWQag4JFiWP4ezFo0sIlKcN9++200GmVZ9vz582vWrLl+/frGjRsVDDNnziwqKurq6jIajSzLtre3q8VKK8lLFMW+vj7UoCRJeXl56VmJEKAZ+PsfoX4lRIJgzgVzLmTlgDkXzA648W9459dw4SSc3AvvL4bQTbA4INs+uMAON6/C+4vh8GdAM3eMDQAAkDOsI1wuV0NDQ0dHB2Y0QohOpysuLk4mkxRFsSzb3d2tjqR3ijlBEHiexx9kWU6P9Ci2tiOwazNYXSDLIIkpC/Qm4BPw4TIQBTCagdWmL9AZQKOFnevBMwUCM9R6UJySEMKybCgUOnHiBKYtVFFeXp5SLEWjUZ7ndTodyn3MHRlFA5Hgb1uB1Qx4QnrlLYFGB7EICElg2Az+SiRgWJBE+PK9Adsbnnp7e9V/qks6DOUZWkqsKBWbSTceioKuf0HHGdBnDRdMQCbAMEDRMFyPIYlgyIYLLdB9CSg6zZDUlJWVNVwxm1b5pgBQDAuBpnAGAJ1tkIzBiI0IyDLAiC0ezUCcg8ttajUqDOEHhmHKysrUnhoMBvEz1mNarVZZfIcbLAkVrIIgpJ8dCcL9zyExXXC31d+h76HXXrt27ZlnnsFAiTKVJOmHH37QarWY5vLy8miaVqyIVqCwLKs2tUQikX621jBOfTgFWr3aNgKBQCQSicViWq22tra2vr4eeUAu29vbL1y4YDAYUKyTJ09WMm9KFKIoSq/XKwBisdgd5eLT5QGGvV8lyARYLTg9uC1N0QDw7rvvLlq0iKZpv9+P4VvdnOzYsYPneaPRSAjRaDRPPfWU2upY9VJchOYUiURUAGgAAN80sDggGQOKGcXQR5C9KIAtD7xTcVvcX6fTlZeXKyEV3VQQBI1Gc+DAga+//tpisciyHI/HJ02aNHPmTPWcgVar0mKxIABsA5TOeMBwbXlQ+nOI98OIXfZoHtwPj82DLNtAvTR4utLloeWgsFtaWtatW2cwGJDjWCz2yiuvaLXaDGEUAeTm5qoBoBUNurUMAPCr3wDDZkgCYyQigc4AlTWojhRog0RRFFZyn3/++YsvvsjzPCbpUCg0e/bspUuXplU3KQDcbjdmRJZl+/r6MJsMAKAZIBI8+jj8ohq43oF0dndDQA1wvbBwNXinApHU4ViZa0iSdO3atcbGxqqqqjfeeANTGIYpk8lUV1eHf6rzQEo1WlhYiLGMYZhIJHLlypXCwsI7SYSiQSZQvQUutMD1DjBmpxcLIxCjgUgfPPo4LN0MhICqAiCE1NbWdnZ26nQ6juOuX79+69YtlmVtNhshhGGYeDxOCPn0008nTpw4dEyUAsDn82EFyjAMz/Pnzp0rLy9XAaCAyJBlgw27YPMvIRkDnXFMGBgW4hzkToANu0BvApnA4IyDpumffvrpm2++SSQSaDkajcZmsyl2FQwGnU7n9u3b586dm3HIRasBeL1eh8OBKYxhmFOnTqX3AzQNRILCUvj9V6AzQjwCjGZ0y4mGwZYHf9gLLi8QSRE/muvZs2cTiYTNZjOZTEajEbOsIAihUIjjuMrKyqampuG4TwFACDGbzRMnTsQUZjAYTp8+zXGcelBzxxlKZsPb/wCnB7heYNjMlRk2ZaGbUDgZ3m6Cn01SV6DKuc3NzcpYkuf53t7ecDhsMpmqqqoaGxu/+OILj8czwoCRVdsiTdNz5sxpamrC2Hz16tUTJ04sXLgQjSodg/cxeP8o7FgH//wKjBbQpNbPDAtCEvr7YO5LsKoejOY07rGmj0QiR48eNZlMsiwLguB2u996662ioqKpU6e6XC5FSyOMR1NqIQCYP3++2WwWxQFWGhsbMw+7EYPZARv3QM2fQKeHSHCg/cUOmLsNhmz47Sew/jMwmgeaodS5N0VR+/fv7+zs1Ov1COb5559fu3ZtRUWFy+XCUYW6xBx9NopKWLx48bFjx8xmM44pDx48OHny5PRxkrr2pGjo6YRdm+HkXiDiQMyZsxheegccBQOleKoIUK48z1dUVCAATF5Hjhzx+XzY1ox1Aqseb+AkY//+/Tk5OUVFRTgaWrlyJep32LGONDilOXNY/uR38p83yG1H039KJdytoaHBarXiQTk5Oa+99poy4Bk7wdARjSAIqESfz+f3+3Nzc5uamkbBQKQhcyFpuEEQiuncuXOFhYWFhYVer9fr9ebn5589e/YeANBDr2RYlt20aZMoihia9Hr9hg0brl69yrKs4hsZGk4c+0giSOJArMxkAxhPwuHw6tWrk8kkTqSDwWB1dXVpaakkSSNb/CgmpJbQ2rVrFf26XK4nn3yyp6cH9XBvo0XUrSzL4XC4qqoKB5g+n8/tds+YMaOvry/tjuceTUiZVPb29paVlbndbpyTOp3O2bNnt7W1KSDHrmscFeLnixcvzps3z263FxUV4dAzLy/v5MmT92A8wwJQ9jp9+nRBQUFBQQE6g9vt9ng827ZtC4fDanXhHdlwpAg1kUjs3LmzuLjY5XIh9z6fz2q17t69O21ee1c07C0lGuvhw4dffvllmqZxDiNJEsdxgUBgyZIlTz/9dElJyViCXVdX16FDh/bs2dPe3p6dnc2yLDpbOBzeunXrmjVrRFHEL8f5nhgxNDc3r1q1KhQKYbuD7XI0GrVYLMXFxVOmTCkuLs7Pz7darVjG4D9GIpEbN25cunSpvb39/Pnzvb29er3eaDRiPunv76dp+oMPPli2bNmo95D3dU+Mu1+8eHH9+vUtLS1ms1kZiYmimEgkkskkpnqsJdM6LCzoDQYDjguwUQyFQqWlpdu2bZs1a9Z9cj+mm3o8QxTFjz/+eMeOHd3d3UajEZP/0JvToT2Kch2PesvNzV2xYsX69euzsrLun/uxvmqgdHE9PT27du3au3fvpUuXeJ5XrvfwV7U/KMGH53lBEBiG8Xg8ixYtqq6u9ng8I1yb/lcAKAyhwBKJRGtr6/Hjx8+cOdPV1dXX15dIJDBwKeJnGEan01mt1oKCgmnTppWXlz/xxBM4MMRsNV6XzdRdvWiihoHEcdytW7eCwWB/f7+SpxmGycrKstlsDofDarWqrXHU6vK/C0ANY4wvY9zV4v8RgKGVSMYL+rt9ceb/A+DhK2cPATwE8BDAQwAPNv0H+NfFpdg3UWIAAAAASUVORK5CYII=" alt="" width="26" height="26"><span>Ko-fi</span></a>
+      <a class="tipbtn feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSd4C2rcApPQMrYZ52bCpdpFqm0BYhfygufhETmiOnCZt6LeeQ/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer"><span>Feedback</span></a>
+    </div>
+    <div class="tb-group">
+      <button class="navlink" type="button" data-act="statement">Statement</button>
+      <button class="navlink" type="button" data-act="about">About</button>
+    </div>
+  </nav>
+  <header class="top">
+    <button class="brand" id="brand" type="button" aria-label="Hanzi Rail, all levels">
+      <span class="mark" aria-hidden="true"><i style="--h:262"></i><i style="--h:28"></i><i style="--h:312"></i></span>
+      Hanzi Rail
+    </button>
+    <div class="toggles">
+      <label class="sw"><input type="checkbox" id="optPy" checked><span>Pinyin</span></label>
+      <label class="sw"><input type="checkbox" id="optEn"><span>English</span></label>
+      <details class="scene" id="sceneCtl"><summary>Scene</summary>
+        <div class="scene-panel">
+          <label for="sceneSpeed"><span>Train speed <b id="sceneSpeedVal"></b></span><input id="sceneSpeed" type="range" min="0" max="60" step="1"></label>
+          <label for="sceneBright"><span>Brightness <b id="sceneBrightVal"></b></span><input id="sceneBright" type="range" min="0" max="100" step="1"></label>
+        </div>
+      </details>
+    </div>
+  </header>
+  <main id="app"></main>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- roles: one colour per job a word can do ---------- */
+var ROLES={
+  s:{label:'Subject',short:'Subj',h:262},
+  t:{label:'Time',short:'Time',h:95},
+  p:{label:'Place',short:'Place',h:155},
+  v:{label:'Verb',short:'Verb',h:28},
+  o:{label:'Object',short:'Obj',h:312},
+  asp:{label:'Particle',short:'Part',h:188},
+  neg:{label:'Negation',short:'Neg',h:342},
+  q:{label:'Question',short:'Ques',h:62},
+  adj:{label:'Adjective',short:'Adj',h:128},
+  deg:{label:'Degree',short:'Deg',h:288},
+  num:{label:'Number',short:'Num',h:215},
+  mw:{label:'Measure word',short:'Meas',h:238},
+  poss:{label:'Possessive',short:'Poss',h:0}
+};
+
+/* ---------- words: id -> [hanzi, pinyin, english, default role] ---------- */
+var W={
+  wo:['我','wǒ','I / me','s'], ni:['你','nǐ','you','s'], ta:['他','tā','he / him','s'], ta2:['她','tā','she / her','s'],
+  zhe:['这','zhè','this','s'], jiqi:['机器','jīqì','machine','s'],
+  chi:['吃','chī','eat','v'], he:['喝','hē','drink','v'], kan:['看','kàn','read / look at','v'],
+  xuexi:['学习','xuéxí','study','v'], gongzuo:['工作','gōngzuò','work','v'], qu:['去','qù','go','v'],
+  you:['有','yǒu','have','v'], shi:['是','shì','to be','v'],
+  pingguo:['苹果','píngguǒ','apple','o'], shui:['水','shuǐ','water','o'], cha:['茶','chá','tea','o'],
+  shu:['书','shū','book','o'], mifan:['米饭','mǐfàn','rice','o'], zhongwen:['中文','zhōngwén','Chinese','o'],
+  xuexiao:['学校','xuéxiào','school','o'],
+  jintian:['今天','jīntiān','today','t'], mingtian:['明天','míngtiān','tomorrow','t'], zuotian:['昨天','zuótiān','yesterday','t'],
+  zaijia:['在家','zài jiā','at home','p'], zaigongsi:['在公司','zài gōngsī','at the company / office','p'], zaixuexiao:['在学校','zài xuéxiào','at school','p'],
+  le:['了','le','finished action','asp'], zai:['在','zài','in progress','asp'], hui:['会','huì','will','asp'],
+  bu:['不','bù','not','neg'], mei:['没','méi','did not / have not','neg'],
+  ma:['吗','ma','yes/no question','q'],
+  hen:['很','hěn','linker / very','deg'],
+  gao:['高','gāo','tall','adj'], re:['热','rè','hot','adj'], mang:['忙','máng','busy','adj'], gui:['贵','guì','expensive','adj'],
+  yi:['一','yī','one','num'], liang:['两','liǎng','two','num'], san:['三','sān','three','num'],
+  ge:['个','gè','general measure','mw'], ben:['本','běn','measure for books','mw'], bei:['杯','bēi','measure for cups','mw'],
+  de:['的','de',"'s / possessive",'poss'],
+  women:['我们','wǒmen','we / us','s'], tamen:['他们','tāmen','they / them','s'],
+  laoshi:['老师','lǎoshī','teacher','s'], mama:['妈妈','māma','mom','s'], baba:['爸爸','bàba','dad','s'],
+  pengyou:['朋友','péngyou','friend','s'], xuesheng:['学生','xuésheng','student','s'],
+  didi:['弟弟','dìdi','younger brother','s'], jiejie:['姐姐','jiějie','older sister','s'],
+  gou:['狗','gǒu','dog','o'], mao:['猫','māo','cat','o'],
+  miantiao:['面条','miàntiáo','noodles','o'], mianbao:['面包','miànbāo','bread','o'], jidan:['鸡蛋','jīdàn','egg','o'],
+  kafei:['咖啡','kāfēi','coffee','o'], niunai:['牛奶','niúnǎi','milk','o'],
+  dianshi:['电视','diànshì','TV','o'], dianying:['电影','diànyǐng','movie','o'], yinyue:['音乐','yīnyuè','music','o'],
+  yingwen:['英文','yīngwén','English','o'], shuxue:['数学','shùxué','math','o'],
+  yifu:['衣服','yīfu','clothes','o'], chenshan:['衬衫','chènshān','shirt','o'],
+  gongsi:['公司','gōngsī','company / office','o'], shangdian:['商店','shāngdiàn','store','o'],
+  mai:['买','mǎi','buy','v'], ting:['听','tīng','listen to','v'], xihuan:['喜欢','xǐhuan','like','v'],
+  shuijiao:['睡觉','shuìjiào','sleep','v'], paobu:['跑步','pǎobù','run / jog','v'],
+  xianzai:['现在','xiànzài','now','t'], meitian:['每天','měitiān','every day','t'], zaoshang:['早上','zǎoshang','morning','t'],
+  xiawu:['下午','xiàwǔ','afternoon','t'], wanshang:['晚上','wǎnshang','evening','t'], zhoumo:['周末','zhōumò','weekend','t'],
+  zaishangdian:['在商店','zài shāngdiàn','at the store','p'], zaigongyuan:['在公园','zài gōngyuán','in the park','p'],
+  zaitushuguan:['在图书馆','zài túshūguǎn','at the library','p'], zaizheli:['在这里','zài zhèlǐ','here','p'],
+  pianyi:['便宜','piányi','cheap','adj'], da:['大','dà','big','adj'], xiao:['小','xiǎo','small','adj'], hao:['好','hǎo','good','adj'],
+  lei:['累','lèi','tired','adj'], gaoxing:['高兴','gāoxìng','happy','adj'], congming:['聪明','cōngming','smart','adj'],
+  leng:['冷','lěng','cold','adj'], xin:['新','xīn','new','adj'], jiu:['旧','jiù','old (things)','adj'],
+  yuan:['远','yuǎn','far','adj'], jin:['近','jìn','near','adj'], kuai:['快','kuài','fast','adj'],
+  si:['四','sì','four','num'], wu:['五','wǔ','five','num'], liu:['六','liù','six','num'], shi10:['十','shí','ten','num'],
+  jian:['件','jiàn','measure for shirts / clothes','mw'], zhi:['只','zhī','measure for small animals','mw'], wan:['碗','wǎn','bowl / measure for bowls','mw']
+};
+
+/* "id", "id:role", or "id:role:Label" */
+function P(s){
+  return s.split(' ').map(function(tok){
+    var a=tok.split(':'), w=W[a[0]];
+    if(!w) throw new Error('Unknown word '+a[0]);
+    return {id:a[0],role:a[1]||w[3],label:a[2]||null};
+  });
+}
+
+/* ---------- levels ---------- */
+var LEVELS=[
+ {id:1,name:'Subject, Verb, Object',
+  rule:'Chinese starts out the way English does. Put who first, then what they do, then what it acts on. The verb never changes form, so 吃 covers both eat and eats.',
+  patterns:[['s','v','o']],
+  examples:[['wo he cha','I drink tea.']],
+  words:['wo','ni','ta','ta2','women','tamen','laoshi','mama','baba','pengyou','xuesheng','didi','jiejie','chi','he','kan','xuexi','mai','ting','xihuan','qu','pingguo','shui','cha','shu','mifan','miantiao','mianbao','jidan','kafei','niunai','dianshi','dianying','yinyue','zhongwen','yingwen','shuxue','yifu','gou','mao','xuexiao','gongsi','shangdian'],
+  ex:[
+   ['I eat apples.','wo chi pingguo','Same order as English: who, does what, to what.'],
+   ['You drink water.','ni he shui','Nothing changes for you, he or I. The verb stays 喝.'],
+   ['He drinks tea.','ta he cha','No -s ending needed. 他 and 她 sound the same (tā) and differ only in writing.'],
+   ['She studies Chinese.','ta2 xuexi zhongwen','Some verbs are two characters. They still behave as one block.'],
+   ['He reads books.','ta kan shu','There is no plural marker. 书 can mean book or books.'],
+   ['You eat rice.','ni chi mifan','Subject, verb, object again.']
+  ]},
+ {id:2,name:'Time and Place',
+  rule:'Time and place go before the verb. English tacks them on the end, Chinese loads them up front. A time word can also open the whole sentence.',
+  patterns:[['s','t','p','v','o'],['t','s','p','v']],
+  examples:[['ni mingtian zaijia xuexi','You study at home tomorrow.']],
+  words:['jintian','mingtian','zuotian','xianzai','meitian','zaoshang','xiawu','wanshang','zhoumo','zaijia','zaigongsi','zaixuexiao','zaishangdian','zaigongyuan','zaitushuguan','zaizheli','gongzuo','shuijiao','paobu'],
+  ex:[
+   ['I work at home tomorrow.','wo mingtian zaijia gongzuo','Subject, time, place, then the verb.'],
+   ['You study at school today.','ni jintian zaixuexiao xuexi','在 is already inside 在学校. It means at.'],
+   ['He eats rice at home today.','ta jintian zaijia chi mifan','An object goes after the verb, at the end.'],
+   ['I drink tea at the company tomorrow.','wo mingtian zaigongsi he cha','Time first, place second, always before the verb.'],
+   ['Tomorrow, I work at the company. (start with the time)','mingtian wo zaigongsi gongzuo','The time can lead the sentence. It still stays ahead of the verb.'],
+   ['Today, she eats rice at home. (start with the time)','jintian ta2 zaijia chi mifan','Same blocks, time moved to the front.']
+  ]},
+ {id:3,name:'Tense by Particles',
+  rule:'Chinese has no verb tenses. Small particles do that job. 了 after the verb marks a finished action. 在 before the verb marks an action in progress. 会 before the verb marks the future.',
+  patterns:[['s','v','asp|了','o'],['s','asp|在','v','o'],['s','asp|会','v','o']],
+  examples:[['wo he le cha','I drank tea.'],['ta zai chi mifan','He is eating rice.'],['ni hui chi pingguo','You will eat apples.']],
+  words:['le','zai','hui'],
+  ex:[
+   ['I ate apples.','wo chi le pingguo','了 sits right after the verb.'],
+   ['I am drinking tea.','wo zai he cha','在 before the verb means it is happening now.'],
+   ['He will study Chinese.','ta hui xuexi zhongwen','会 before the verb points to the future.'],
+   ['You ate rice.','ni chi le mifan','了 again, straight after the verb.'],
+   ['He is working.','ta zai gongzuo','No object needed. 在 plus a verb is enough.'],
+   ['I will go to school.','wo hui qu xuexiao','去 takes the place directly. No 在 here.'],
+   ['Yesterday I drank water.','wo zuotian he le shui','The time word sits before the verb. 了 still follows it.']
+  ]},
+ {id:4,name:'Negation',
+  rule:'Two words negate a verb, and both sit right before it. 不 covers habits, the present and the future. 没 covers the past, and when you use it the 了 drops away. With 会, the 不 goes before the 会.',
+  patterns:[['s','neg|不','v','o'],['s','neg|没','v','o'],['s','neg|不','asp|会','v','o']],
+  examples:[['wo bu he cha','I do not drink tea.'],['ta mei kan shu','He did not read the book.']],
+  words:['bu','mei'],
+  ex:[
+   ['I do not eat apples.','wo bu chi pingguo','不 goes straight before the verb.'],
+   ['He did not drink tea.','ta mei he cha','没 is for the past. There is no 了 with it.'],
+   ['You do not study Chinese.','ni bu xuexi zhongwen','Present and habit use 不.'],
+   ['I will not go to school.','wo bu hui qu xuexiao','不 comes before 会.'],
+   ['He does not work today.','ta jintian bu gongzuo','The time word stays ahead of the negation.'],
+   ['I did not eat rice.','wo mei chi mifan','Past again, so 没 and no 了.']
+  ]},
+ {id:5,name:'Questions',
+  rule:'To ask a yes or no question, keep the statement exactly as it is and add 吗 at the end. Nothing moves.',
+  patterns:[['s','v','o','q|吗']],
+  examples:[['ta chi mifan ma','Does he eat rice?']],
+  words:['ma'],
+  ex:[
+   ['Do you eat apples?','ni chi pingguo ma','Statement plus 吗.'],
+   ['Does he drink tea?','ta he cha ma','No helper verb like do or does.'],
+   ['Will you go to school tomorrow?','ni mingtian hui qu xuexiao ma','Every block keeps its place. 吗 closes the sentence.'],
+   ['Have you eaten?','ni chi le ma','A very common greeting. 了 marks the finished action.'],
+   ['Do you work at home today?','ni jintian zaijia gongzuo ma','Time and place stay before the verb.'],
+   ['Do you not drink water?','ni bu he shui ma','Negation and a question can sit in one sentence.']
+  ]},
+ {id:6,name:'Adjectives as Verbs',
+  rule:'Adjectives work like verbs, so Chinese has no is or are in front of them. 她很高 means she is tall. The 很 acts as a linker and is often not meant as very. It drops out after 不 and in yes/no questions.',
+  patterns:[['s','deg|很','adj'],['s','neg|不','adj'],['s','adj','q|吗']],
+  examples:[['ni hen gao','You are tall.']],
+  words:['hen','gao','re','mang','gui','pianyi','da','xiao','hao','lei','gaoxing','congming','leng','xin','jiu','yuan','jin','kuai','jiqi'],
+  ex:[
+   ['She is tall.','ta2 hen gao','No verb to be. The adjective does the work.'],
+   ['The machine is very hot.','jiqi hen re','Machines make fine subjects too.'],
+   ['I am busy.','wo hen mang','Subject, 很, adjective.'],
+   ['The apple is expensive.','pingguo:s hen gui','Here 苹果 is the subject, so it takes the subject color.'],
+   ['The machine is not hot.','jiqi bu re','After 不, the 很 goes away.'],
+   ['Are you busy?','ni mang ma','In a question the 很 is dropped.'],
+   ['Is the machine hot today?','jiqi jintian re ma','Time sits before the adjective.',['jintian jiqi re ma']]
+  ]},
+ {id:7,name:'Measure Words',
+  rule:'A number cannot sit directly in front of a noun. A measure word goes between them: number, measure word, noun. 个 is the general one. 本 counts books and 杯 counts cups. Use 两 for two.',
+  patterns:[['s','v','num','mw','o']],
+  examples:[['ni chi liang ge pingguo','You eat two apples.']],
+  words:['yi','liang','san','si','wu','liu','shi10','ge','ben','bei','jian','zhi','wan','you','chenshan'],
+  ex:[
+   ['I eat three apples.','wo chi san ge pingguo','Number, measure word, noun.'],
+   ['He reads two books.','ta kan liang ben shu','本 is the measure word for books. Two is 两 here, not 二.'],
+   ['You drink one cup of tea.','ni he yi bei cha','杯 measures cups and glasses.'],
+   ['I have three books.','wo you san ben shu','有 means have. Same pattern after it.'],
+   ['He eats one apple.','ta chi yi ge pingguo','Even one needs its measure word.'],
+   ['I drink two cups of water.','wo he liang bei shui','两 and 杯 travel together.']
+  ]},
+ {id:8,name:'Possession',
+  rule:'的 works like the English apostrophe s. The owner comes first, then 的, then the thing owned. 我的书 is my book and 他的茶 is his tea.',
+  patterns:[['s|owner','poss|的','o|thing owned']],
+  examples:[['ni:s:Owner de shu:o:Thing','your book']],
+  words:['de','zhe','shi'],
+  ex:[
+   ['my book','wo:s:Owner de shu:o:Thing','Owner, 的, thing.'],
+   ['his tea','ta:s:Owner de cha:o:Thing','The same shape for every owner.'],
+   ['This is my book.','zhe shi wo:s:Owner de shu:o:Thing','是 links two nouns, just as is does in English.'],
+   ['I eat his apple.','wo chi ta:s:Owner de pingguo','The whole owner phrase sits where the object goes.'],
+   ['Her book is expensive.','ta2:s:Owner de shu:s:Thing hen gui','An owner phrase can be the subject of an adjective sentence.'],
+   ['Do you drink my tea?','ni he wo:s:Owner de cha ma','Possession inside a question.']
+  ]},
+ {id:9,name:'Full Wiring',hidden:true,
+  rule:'Everything from the first eight levels, mixed. The structure labels are hidden. Use what you know, and reveal the structure if you get stuck.',
+  patterns:[],
+  examples:[],
+  words:[],
+  ex:[
+   ['Tomorrow I will drink two cups of tea at home.','wo mingtian hui zaijia he liang bei cha','Subject, time, 会, place, verb, number, measure word, object.',['mingtian wo hui zaijia he liang bei cha']],
+   ['He did not eat my apple.','ta mei chi wo:s de pingguo','没 for the past, no 了, and the owner phrase after the verb.'],
+   ['Is your book expensive?','ni:s de shu:s gui ma','No 很 in a question.'],
+   ['I do not have three books.','wo mei you san ben shu','有 is always negated with 没.'],
+   ['Did he eat three apples today?','ta jintian chi le san ge pingguo ma','了 for finished, 吗 to ask.',['jintian ta chi le san ge pingguo ma']],
+   ['Tomorrow I will not go to school.','wo mingtian bu hui qu xuexiao','不 sits before 会.',['mingtian wo bu hui qu xuexiao']],
+   ['Do you have my book?','ni you wo:s de shu ma','有 plus an owner phrase, then 吗.']
+  ]}
+];
+
+/* ---------- sentence generator: tops every level up to 40 sentences ---------- */
+(function(){
+var TARGET=40;
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+function J(a){return a.filter(Boolean).join(' ');}
+
+/* people: [english, person, possessive] */
+var SUB={
+ wo:['I','1','my'],ni:['you','2','your'],ta:['he','3','his'],ta2:['she','3','her'],
+ women:['we','pl','our'],tamen:['they','pl','their'],
+ laoshi:['the teacher','3',"the teacher's"],mama:['Mom','3',"Mom's"],baba:['Dad','3',"Dad's"],
+ pengyou:['my friend','3',"my friend's"],xuesheng:['the student','3',"the student's"],
+ didi:['my younger brother','3',"my younger brother's"],jiejie:['my older sister','3',"my older sister's"]
+};
+var PEOPLE=Object.keys(SUB);
+function sEn(s){return SUB[s][0];}
+function poss(s){return SUB[s][2];}
+function is3(s){return SUB[s][1]==='3';}
+function beF(s){var p=SUB[s][1];return p==='1'?'am':(p==='3'?'is':'are');}
+function doF(s){return is3(s)?'does':'do';}
+
+/* objects: [as plural or mass, singular] */
+var OBJ={
+ pingguo:['apples','apple'],mifan:['rice','rice'],miantiao:['noodles','noodles'],mianbao:['bread','bread'],jidan:['eggs','egg'],
+ shui:['water','water'],cha:['tea','tea'],kafei:['coffee','coffee'],niunai:['milk','milk'],
+ shu:['books','book'],dianshi:['TV','TV'],dianying:['movies','movie'],
+ zhongwen:['Chinese','Chinese'],yingwen:['English','English'],shuxue:['math','math'],
+ yifu:['clothes','clothes'],yinyue:['music','music'],mao:['cats','cat'],gou:['dogs','dog'],
+ xuexiao:['school','school'],gongsi:['the office','the office'],shangdian:['the store','the store']
+};
+
+/* verb forms: base|third person|past|-ing */
+var EAT='eat|eats|ate|eating',DRINK='drink|drinks|drank|drinking',READ='read|reads|read|reading',
+    WATCH='watch|watches|watched|watching',STUDY='study|studies|studied|studying',BUY='buy|buys|bought|buying',
+    LISTEN='listen to|listens to|listened to|listening to',LIKE='like|likes|liked|liking',
+    GO='go to|goes to|went to|going to',WORK='work|works|worked|working',SLEEP='sleep|sleeps|slept|sleeping',RUN='run|runs|ran|running';
+/* [verb id, object id or null, group, forms, flags: s = state verb, m = movement] */
+var ACTS=[
+ ['chi','pingguo','eat',EAT],['chi','mifan','eat',EAT],['chi','miantiao','eat',EAT],['chi','mianbao','eat',EAT],['chi','jidan','eat',EAT],
+ ['he','shui','drink',DRINK],['he','cha','drink',DRINK],['he','kafei','drink',DRINK],['he','niunai','drink',DRINK],
+ ['kan','shu','read',READ],['kan','dianshi','tv',WATCH],['kan','dianying','tv',WATCH],
+ ['xuexi','zhongwen','study',STUDY],['xuexi','yingwen','study',STUDY],['xuexi','shuxue','study',STUDY],
+ ['mai','shu','buy',BUY],['mai','pingguo','buy',BUY],['mai','mianbao','buy',BUY],['mai','niunai','buy',BUY],['mai','yifu','buy',BUY],
+ ['ting','yinyue','music',LISTEN],
+ ['xihuan','cha','like',LIKE,'s'],['xihuan','mao','like',LIKE,'s'],['xihuan','gou','like',LIKE,'s'],['xihuan','yinyue','like',LIKE,'s'],['xihuan','pingguo','like',LIKE,'s'],['xihuan','kafei','like',LIKE,'s'],
+ ['qu','xuexiao','go',GO,'m'],['qu','gongsi','go',GO,'m'],['qu','shangdian','go',GO,'m'],
+ ['gongzuo',null,'work',WORK],['xuexi',null,'study',STUDY],['shuijiao',null,'sleep',SLEEP],['paobu',null,'run',RUN]
+].map(function(a){
+ var f=a[3].split('|'),fl=a[4]||'';
+ return {v:a[0],o:a[1],g:a[2],b:f[0],t:f[1],pa:f[2],ing:f[3],st:fl.indexOf('s')>=0,mv:fl.indexOf('m')>=0};
+});
+function np(a){return a.o?OBJ[a.o][0]:'';}
+var OACT=ACTS.filter(function(a){return a.o&&!a.mv&&!a.st&&['eat','drink','read','buy','music'].indexOf(a.g)>=0;});
+var OACTL=ACTS.filter(function(a){return a.o&&!a.mv&&['eat','drink','read','buy','music','like'].indexOf(a.g)>=0;});
+
+/* times and places */
+var TEN={jintian:'today',mingtian:'tomorrow',zuotian:'yesterday',xianzai:'now',meitian:'every day',zaoshang:'in the morning',xiawu:'in the afternoon',wanshang:'in the evening',zhoumo:'on the weekend'};
+var PEN={zaijia:'at home',zaigongsi:'at the office',zaixuexiao:'at school',zaishangdian:'at the store',zaigongyuan:'in the park',zaitushuguan:'at the library',zaizheli:'here'};
+var PLACE_OK={
+ zaijia:['eat','drink','read','tv','study','work','sleep','music'],zaigongsi:['work','drink','eat'],
+ zaixuexiao:['study','eat','read','drink'],zaishangdian:['buy'],zaigongyuan:['run','read','music'],
+ zaitushuguan:['read','study','work'],zaizheli:['eat','drink','study','work','read']
+};
+var PLACES=Object.keys(PLACE_OK);
+
+/* things that can be described: [english, adjectives] */
+var ADJEN={gao:'tall',re:'hot',mang:'busy',gui:'expensive',pianyi:'cheap',da:'big',xiao:'small',hao:'good',lei:'tired',gaoxing:'happy',congming:'smart',leng:'cold',xin:'new',jiu:'old',yuan:'far',jin:'near',kuai:'fast'};
+var PADJ=['gao','mang','lei','gaoxing','congming'];
+var THING={
+ jiqi:['machine','re leng da xiao xin jiu kuai hao gui pianyi'],pingguo:['apple','da xiao hao gui pianyi'],
+ shu:['book','gui pianyi hao xin jiu da xiao'],cha:['tea','re leng hao gui pianyi'],kafei:['coffee','re leng hao gui pianyi'],
+ niunai:['milk','re leng hao gui pianyi'],mifan:['rice','re leng hao'],shui:['water','re leng hao'],
+ xuexiao:['school','da xiao xin jiu yuan jin hao'],gongsi:['company','da xiao xin jiu yuan jin hao'],
+ shangdian:['store','da xiao xin jiu yuan jin hao gui pianyi'],yifu:['clothes','gui pianyi xin jiu hao'],
+ gou:['dog','da xiao congming kuai lei gaoxing hao'],mao:['cat','da xiao congming kuai lei gaoxing hao']
+};
+var THINGS=Object.keys(THING);
+function thAdj(k){return pick(THING[k][1].split(' '));}
+function thBe(k){return k==='yifu'?'are':'is';}
+
+/* numbers and counted nouns: [verb, measure word, noun id, singular, plural] */
+var NUMS=[['yi','one'],['liang','two'],['san','three'],['si','four'],['wu','five'],['liu','six'],['shi10','ten']];
+var VEN={chi:['eat','eats'],he:['drink','drinks'],kan:['read','reads'],mai:['buy','buys'],you:['have','has']};
+var GRP={chi:'eat',he:'drink',kan:'read',mai:'buy'};
+var PAIRS=[
+ ['chi','ge','pingguo','apple','apples'],['chi','ge','jidan','egg','eggs'],['chi','wan','mifan','bowl of rice','bowls of rice'],['chi','wan','miantiao','bowl of noodles','bowls of noodles'],
+ ['he','bei','cha','cup of tea','cups of tea'],['he','bei','shui','cup of water','cups of water'],['he','bei','kafei','cup of coffee','cups of coffee'],['he','bei','niunai','cup of milk','cups of milk'],
+ ['kan','ben','shu','book','books'],
+ ['mai','ben','shu','book','books'],['mai','ge','pingguo','apple','apples'],['mai','ge','jidan','egg','eggs'],['mai','jian','chenshan','shirt','shirts'],['mai','zhi','mao','cat','cats'],['mai','zhi','gou','dog','dogs'],['mai','bei','kafei','cup of coffee','cups of coffee'],['mai','bei','niunai','cup of milk','cups of milk'],
+ ['you','ben','shu','book','books'],['you','zhi','gou','dog','dogs'],['you','zhi','mao','cat','cats'],['you','ge','pengyou','friend','friends'],['you','jian','chenshan','shirt','shirts'],['you','ge','pingguo','apple','apples'],['you','ge','jidan','egg','eggs']
+];
+function ptok(p){return p[2]==='pengyou'?'pengyou:o':p[2];}
+function pnoun(p,n){return n[0]==='yi'?p[3]:p[4];}
+
+/* entry = [english, tokens, note, alternate token strings] */
+function ent(en,pair,note){return [en,pair[0],note,pair[1]];}
+/* subject + time + rest, with the time-first order accepted as well */
+function ST(s,t,rest){
+ var main=J([s,t].concat(rest));
+ return [main,t?[J([t,s].concat(rest))]:[]];
+}
+var TOLD='Time words can also lead the sentence, but they always stay ahead of the verb.';
+
+function g1(){
+ var s=pick(PEOPLE),a=pick(ACTS.filter(function(x){return x.o;}));
+ return ent(cap(J([sEn(s),is3(s)?a.t:a.b,np(a)]))+'.',[J([s,a.v,a.o]),[]],'Subject, verb, object. The verb never changes form.');
+}
+
+function g2(){
+ var s=pick(PEOPLE),pl=pick(PLACES),t=pick(Object.keys(TEN));
+ var a=pick(ACTS.filter(function(x){return !x.st&&!x.mv&&PLACE_OK[pl].indexOf(x.g)>=0;}));
+ var en=cap(J([sEn(s),t==='zuotian'?a.pa:(is3(s)?a.t:a.b),np(a),PEN[pl],TEN[t]]))+'.';
+ return ent(en,ST(s,t,[pl,a.v,a.o]),'Time, then place, then the verb. '+TOLD);
+}
+
+var T3={le:['zuotian','jintian','zaoshang','wanshang'],zai:['xianzai'],hui:['mingtian','zhoumo','wanshang','xiawu','jintian']};
+var N3={le:'了 sits right after the verb to mark a finished action.',zai:'在 before the verb means the action is happening now.',hui:'会 before the verb points to the future.'};
+function g3(){
+ var kind=pick(['le','zai','hui']),s=pick(PEOPLE);
+ var a=pick(ACTS.filter(function(x){return !x.st&&!(kind==='zai'&&x.mv);}));
+ var t=Math.random()<0.5?pick(T3[kind]):null;
+ var v=kind==='le'?a.pa:(kind==='zai'?J([beF(s),a.ing]):'will '+a.b);
+ var en=cap(J([sEn(s),v,np(a),t?TEN[t]:'']))+'.';
+ var rest=kind==='le'?[a.v,'le',a.o]:[kind,a.v,a.o];
+ return ent(en,ST(s,t,rest),N3[kind]);
+}
+
+var T4={bu:['jintian','meitian','xianzai'],mei:['zuotian','jintian'],hui:['mingtian','zhoumo','wanshang','xiawu']};
+function g4(){
+ var kind=pick(['bu','bu','mei','hui']),s=pick(PEOPLE);
+ var a=pick(ACTS.filter(function(x){return kind==='bu'||!x.st;}));
+ var t=(!a.st&&Math.random()<0.4)?pick(T4[kind]):null;
+ var aux=kind==='bu'?J([doF(s),'not']):(kind==='mei'?'did not':'will not');
+ var en=cap(J([sEn(s),aux,a.b,np(a),t?TEN[t]:'']))+'.';
+ var rest=kind==='hui'?['bu','hui',a.v,a.o]:[kind==='bu'?'bu':'mei',a.v,a.o];
+ var note=kind==='bu'?'不 goes straight before the verb.':(kind==='mei'?'没 is for the past, and there is no 了 with it.':'不 comes before 会.');
+ return ent(en,ST(s,t,rest),note);
+}
+
+function g5(){
+ var s=pick(PEOPLE.filter(function(x){return x!=='wo';})),kind=pick(['plain','plain','le','hui','place','neg']);
+ var a,t,pl,en;
+ if(kind==='plain'){
+  a=pick(ACTS);
+  return ent(cap(J([doF(s),sEn(s),a.b,np(a)]))+'?',[J([s,a.v,a.o,'ma']),[]],'Statement plus 吗. Nothing else moves.');
+ }
+ if(kind==='le'){
+  a=pick(ACTS.filter(function(x){return !x.st;}));
+  return ent(cap(J(['did',sEn(s),a.b,np(a)]))+'?',[J([s,a.v,'le',a.o,'ma']),[]],'了 marks the finished action, 吗 closes the question.');
+ }
+ if(kind==='hui'){
+  a=pick(ACTS.filter(function(x){return !x.st;}));t=Math.random()<0.6?pick(['mingtian','zhoumo','wanshang','xiawu']):null;
+  var r=ST(s,t,['hui',a.v,a.o,'ma']);
+  return ent(cap(J(['will',sEn(s),a.b,np(a),t?TEN[t]:'']))+'?',r,'会 shows the future. Every block keeps its place, and 吗 closes the sentence.');
+ }
+ if(kind==='place'){
+  pl=pick(PLACES);t=pick(['jintian','mingtian','meitian','xiawu','wanshang','zhoumo']);
+  a=pick(ACTS.filter(function(x){return !x.st&&!x.mv&&PLACE_OK[pl].indexOf(x.g)>=0;}));
+  return ent(cap(J([doF(s),sEn(s),a.b,np(a),PEN[pl],TEN[t]]))+'?',ST(s,t,[pl,a.v,a.o,'ma']),'Time and place stay before the verb. 吗 still goes last.');
+ }
+ a=pick(ACTS);
+ return ent(cap(J([doF(s)==='does'?"doesn't":"don't",sEn(s),a.b,np(a)]))+'?',[J([s,'bu',a.v,a.o,'ma']),[]],'Negation and a question can sit in one sentence.');
+}
+
+function g6(){
+ var sid,sen,be,adjs,k;
+ if(Math.random()<0.5){var s=pick(PEOPLE);sid=s;sen=sEn(s);be=beF(s);adjs=PADJ;}
+ else{k=pick(THINGS);sid=k+':s';sen='the '+THING[k][0];be=thBe(k);adjs=THING[k][1].split(' ');}
+ var adj=pick(adjs),ae=ADJEN[adj],r=Math.random();
+ if(r<0.5)return ent(cap(J([sen,be,ae]))+'.',[J([sid,'hen',adj]),[]],'很 links the subject to the adjective. There is no verb to be.');
+ if(r<0.75)return ent(cap(J([sen,be,'not',ae]))+'.',[J([sid,'bu',adj]),[]],'不 goes before the adjective, and the 很 drops out.');
+ return ent(cap(J([be,sen,ae]))+'?',[J([sid,adj,'ma']),[]],'In a yes/no question the 很 drops out and 吗 closes the sentence.');
+}
+
+function g7(){
+ var s=pick(PEOPLE),p=pick(PAIRS),n=pick(NUMS),v=VEN[p[0]];
+ return ent(cap(J([sEn(s),is3(s)?v[1]:v[0],n[1],pnoun(p,n)]))+'.',[J([s,p[0],n[0],p[1],ptok(p)]),[]],'Number, then measure word, then the noun. Each noun has its own measure word.');
+}
+
+function g8(){
+ var o=pick(PEOPLE),r=Math.random(),k;
+ if(r<0.25){k=pick(THINGS);return ent(poss(o)+' '+THING[k][0],[J([o+':s:Owner','de',k+':o:Thing']),[]],'Owner, then 的, then the thing owned.');}
+ if(r<0.45){k=pick(THINGS.filter(function(x){return x!=='yifu';}));return ent(cap('this is '+poss(o)+' '+THING[k][0])+'.',[J(['zhe','shi',o+':s:Owner','de',k+':o:Thing']),[]],'是 links two nouns, just as is does in English.');}
+ if(r<0.8){
+  var s=pick(PEOPLE),a=pick(OACTL);
+  return ent(cap(J([sEn(s),is3(s)?a.t:a.b,poss(o),OBJ[a.o][1]]))+'.',[J([s,a.v,o+':s:Owner','de',a.o]),[]],'The whole owner phrase sits where the object goes.');
+ }
+ k=pick(THINGS);var adj=thAdj(k);
+ return ent(cap(J([poss(o),THING[k][0],thBe(k),ADJEN[adj]]))+'.',[J([o+':s:Owner','de',k+':s:Thing','hen',adj]),[]],'An owner phrase can be the subject of an adjective sentence.');
+}
+
+var G9=[
+ function(){
+  var s=pick(PEOPLE),p=pick(PAIRS.filter(function(x){return x[0]!=='you';})),n=pick(NUMS);
+  var pl=pick(PLACES.filter(function(x){return PLACE_OK[x].indexOf(GRP[p[0]])>=0;})),t=pick(['mingtian','zhoumo','wanshang','xiawu']);
+  return ent(cap(J([sEn(s),'will',VEN[p[0]][0],n[1],pnoun(p,n),PEN[pl],TEN[t]]))+'.',ST(s,t,['hui',pl,p[0],n[0],p[1],ptok(p)]),'会 sits before the place phrase, and the place phrase sits before the verb.');
+ },
+ function(){
+  var s=pick(PEOPLE),o=pick(PEOPLE),a=pick(OACT);
+  return ent(cap(J([sEn(s),'did not',a.b,poss(o),OBJ[a.o][1]]))+'.',[J([s,'mei',a.v,o+':s','de',a.o]),[]],'没 for the past, no 了, and the owner phrase takes the object spot.');
+ },
+ function(){
+  var o=pick(PEOPLE),k=pick(THINGS),adj=thAdj(k);
+  return ent(cap(J([thBe(k),poss(o),THING[k][0],ADJEN[adj]]))+'?',[J([o+':s','de',k+':s',adj,'ma']),[]],'No 很 in a yes/no question.');
+ },
+ function(){
+  var s=pick(PEOPLE),p=pick(PAIRS.filter(function(x){return x[0]==='you';})),n=pick(NUMS);
+  return ent(cap(J([sEn(s),doF(s),'not have',n[1],pnoun(p,n)]))+'.',[J([s,'mei','you',n[0],p[1],ptok(p)]),[]],'有 is always negated with 没.');
+ },
+ function(){
+  var s=pick(PEOPLE.filter(function(x){return x!=='wo';})),p=pick(PAIRS.filter(function(x){return x[0]!=='you';})),n=pick(NUMS),t=pick(['jintian','zuotian','zaoshang','wanshang']);
+  return ent(cap(J(['did',sEn(s),VEN[p[0]][0],n[1],pnoun(p,n),TEN[t]]))+'?',ST(s,t,[p[0],'le',n[0],p[1],ptok(p),'ma']),'了 for finished, 吗 to ask.');
+ },
+ function(){
+  var s=pick(PEOPLE),a=pick(ACTS.filter(function(x){return !x.st;})),t=pick(['mingtian','zhoumo','wanshang','xiawu']);
+  return ent(cap(J([sEn(s),'will not',a.b,np(a),TEN[t]]))+'.',ST(s,t,['bu','hui',a.v,a.o]),'不 sits before 会.');
+ },
+ function(){
+  var s=pick(PEOPLE),o=pick(PEOPLE),k=pick(THINGS);
+  return ent(cap(J([doF(s),sEn(s),'have',poss(o),THING[k][0]]))+'?',[J([s,'you',o+':s','de',k+':o','ma']),[]],'有 plus an owner phrase, then 吗.');
+ },
+ function(){
+  var s=pick(PEOPLE),o=pick(PEOPLE),a=pick(OACTL);
+  return ent(cap(J([sEn(s),doF(s),'not',a.b,poss(o),OBJ[a.o][1]]))+'.',[J([s,'bu',a.v,o+':s','de',a.o]),[]],'不 before the verb, then the owner phrase as the object.');
+ },
+ function(){
+  var k=pick(THINGS),adj=thAdj(k),t='jintian';
+  return ent(cap(J([thBe(k),'the',THING[k][0],ADJEN[adj],TEN[t]]))+'?',ST(k+':s',t,[adj,'ma']),'The time word comes before the adjective, and there is no 很.');
+ }
+];
+function g9(){return pick(G9)();}
+
+var GENS={1:g1,2:g2,3:g3,4:g4,5:g5,6:g6,7:g7,8:g8,9:g9};
+
+function idsOf(tokens){return tokens.split(' ').map(function(t){return t.split(':')[0];});}
+function fill(L,fn){
+ var seen={},out=[];
+ L.ex.forEach(function(e){seen[e[1]]=1;out.push(e);});
+ var guard=0;
+ while(out.length<TARGET&&guard++<8000){
+  var e=fn();
+  if(!e||seen[e[1]])continue;
+  var d=idsOf(e[1]);
+  if(d.some(function(x,i){return d.indexOf(x)!==i;}))continue;
+  seen[e[1]]=1;out.push(e);
+ }
+ L.ex=out;
+}
+LEVELS.forEach(function(L){fill(L,GENS[L.id]);});
+})();
+
+/* ---------- saved progress ---------- */
+var KEY='hanzirail.v1';
+var store={done:{},best:{},bestTime:{},mode:'relaxed',openAll:false,py:true,en:false};
+try{var raw=localStorage.getItem(KEY);if(raw){var j=JSON.parse(raw);store.done=j.done||{};store.best=j.best||{};store.bestTime=j.bestTime||{};store.mode=j.mode==='timed'?'timed':'relaxed';store.openAll=!!j.openAll;store.py=j.py!==false;store.en=!!j.en;}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+
+/* ---------- state ---------- */
+var S={iv:null,t0:0,timed:false,levelMs:0,view:'home',li:0,ei:0,ex:null,bank:[],slots:[],status:null,fb:null,attempts:0,hints:0,revealed:false,revealStruct:false,solved:false,usedAlt:false,locked:false,results:[],hintUid:null,hintSlot:null,focusUid:null};
+var app=document.getElementById('app');
+
+function unlocked(i){return i===0||store.openAll||!!store.done[LEVELS[i-1].id];}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function roleOf(r){return ROLES[r];}
+
+/* ---------- pieces of markup ---------- */
+function chip(item,sm){
+  var a=item.split('|'),r=ROLES[a[0]];
+  return '<span class="chip'+(sm?' sm':'')+'" style="--h:'+r.h+'">'+r.label+(a[1]?' <em>'+a[1]+'</em>':'')+'</span>';
+}
+function patternHTML(p,sm){return p.map(function(i){return chip(i,sm);}).join('<span class="plus">+</span>');}
+function tileHTML(t,o){
+  o=o||{};var w=W[t.wid],r=ROLES[t.role];
+  var cls='tile'+(o.stat?' static':'')+(o.hint?' hint':'');
+  var attrs=o.stat?'':' data-uid="'+t.uid+'" role="button" tabindex="'+(S.locked?-1:0)+'"';
+  return '<div class="'+cls+'" style="--h:'+r.h+'"'+attrs+' aria-label="'+w[0]+', '+w[2]+', '+r.label+'">'+
+    '<span class="band">'+r.short+'</span><span class="zh">'+w[0]+'</span><span class="py">'+w[1]+'</span><span class="en">'+w[2]+'</span></div>';
+}
+function staticRail(tokens){
+  return '<div class="rail flat">'+P(tokens).map(function(a){
+    return '<div class="slot" style="--h:'+ROLES[a.role].h+'"><span class="slot-label"><i></i>'+(a.label||ROLES[a.role].label)+'</span><div class="well filled">'+tileHTML({wid:a.id,role:a.role},{stat:true})+'</div></div>';
+  }).join('')+'</div>';
+}
+function pinyinOf(ids){return ids.map(function(id){return W[id][1];}).join(' ');}
+
+/* ---------- views ---------- */
+function render(){
+  if(S.view!=='play'&&S.iv){clearInterval(S.iv);S.iv=null;}
+  document.body.dataset.py=store.py?'1':'0';
+  document.body.dataset.en=store.en?'1':'0';
+  if(S.view==='home')renderHome();
+  else if(S.view==='intro')renderIntro();
+  else if(S.view==='play')renderPlay();
+  else if(S.view==='recog')renderRecog();
+  else if(S.view==='statement')renderStatement();
+  else if(S.view==='about')renderAbout();
+  else renderDone();
+  if(S.focusUid){var el=app.querySelector('[data-uid="'+S.focusUid+'"]');if(el)el.focus();S.focusUid=null;}
+}
+
+/* pace: relaxed (no clock) or timed (clock for the whole level) */
+function fmt(ms){var s=Math.max(0,Math.round(ms/1000));return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2);}
+function paceHTML(){
+  var t=store.mode==='timed';
+  return '<section><h2>Pace</h2><div class="pace" role="group" aria-label="Pace">'+
+    '<button type="button" data-act="mode" data-m="relaxed" aria-pressed="'+(!t)+'">Relaxed</button>'+
+    '<button type="button" data-act="mode" data-m="timed" aria-pressed="'+t+'">Timed</button></div>'+
+    '<p class="muted" style="margin:10px 0 0;max-width:62ch">'+(t?'A clock runs for the whole level, and your best time is saved for each level.':'No clock. Slow and steady: take your time with every sentence.')+'</p></section>';
+}
+function updClock(){var c=document.getElementById('clock');if(c&&S.view==='play'&&S.timed)c.textContent=fmt(Date.now()-S.t0);}
+function timeLine(){
+  if(!S.timed)return '';
+  var L=LEVELS[S.li],b=store.bestTime[L.id];
+  return '<p class="timeline">Time <b>'+fmt(S.levelMs)+'</b> &middot; Best <b>'+fmt(b)+'</b>'+(S.levelMs===b?' &middot; new best':'')+'</p>';
+}
+
+/* statement and about pages */
+function renderStatement(){
+  app.innerHTML=
+    '<button class="back" type="button" data-act="home">&larr; All levels</button>'+
+    '<p class="eyebrow" style="margin-top:18px">Statement</p>'+
+    '<h1>A free language-learning resource</h1>'+
+    '<p class="lead">Hanzi Rail teaches Mandarin sentence structure with blocks you drag into place. Nobody pays to play it.</p>'+
+    '<ul class="pledge">'+
+      '<li><b>Free.</b> Every level and every mini game is open to everyone.</li>'+
+      '<li><b>No ads.</b> Nothing on the page is selling you anything. The tip buttons are the only ask, and they are optional.</li>'+
+      '<li><b>Completely offline after your first visit.</b> Once the page has loaded one time, it plays without a connection.</li>'+
+    '</ul>'+
+    '<section><h2>The small print</h2><p class="muted" style="margin:0;max-width:62ch">The tip and feedback buttons open other websites, so they need a connection. Your progress is saved only in your own browser. Hanzi Rail runs no accounts and no trackers of its own.</p></section>';
+}
+function renderAbout(){
+  app.innerHTML=
+    '<button class="back" type="button" data-act="home">&larr; All levels</button>'+
+    '<p class="eyebrow" style="margin-top:18px">About</p>'+
+    '<h1>Hello, I\'m Inventing</h1>'+
+    '<p class="lead" style="max-width:56ch">My name is Inventing, and I believe practice develops skill. I quit my job to build a future of people who understand many aspects of life, from language to building contraptions from the mind.</p>'+
+    '<p class="lead" style="max-width:56ch">This is my piece of the grand puzzle we call life. I hope you enjoy my little contribution.</p>';
+}
+
+function renderHome(){
+  var done=Object.keys(store.done).length;
+  var key=Object.keys(ROLES).map(function(k){return chip(k);}).join('');
+  var rows=LEVELS.map(function(L,i){
+    var open=unlocked(i),d=store.done[L.id];
+    var bt=store.bestTime[L.id];
+    var st=d?(d.clean+' of '+d.total+' first try'+(bt?' &middot; best '+fmt(bt):'')):(open?'Ready':'Locked');
+    var mini=L.hidden?'<span class="eyebrow">Structure hidden</span>':patternHTML(L.patterns[0],true);
+    return '<button class="lvl" type="button" data-act="level" data-i="'+i+'"'+(open?'':' disabled')+'>'+
+      '<span class="lvl-n">'+(i+1)+'</span><span class="lvl-main"><b>'+L.name+'</b><span class="mini">'+mini+'</span></span><span class="lvl-st">'+st+'</span></button>';
+  }).join('');
+  app.innerHTML=
+    '<p class="eyebrow">Mandarin sentence builder</p>'+
+    '<h1>Snap words onto the rail in the right order</h1>'+
+    '<p class="lead">Each word is a block, and each kind of word has its own color. You see the pattern first, then build sentences by dragging blocks into place. Every level adds new blocks and one new rule.</p>'+
+    '<section><h2>Color key</h2><div class="key">'+key+'</div></section>'+
+    paceHTML()+'<section><h2>Levels</h2><div class="levels">'+rows+'</div>'+
+    '<p style="margin-top:14px">'+(store.openAll?'':'<button class="linkbtn" type="button" data-act="openall">Open every level</button>')+(done?' <button class="linkbtn" type="button" data-act="reset" style="margin-left:12px">Clear progress</button>':'')+'</p></section>'+recogSection();
+}
+
+function renderIntro(){
+  var L=LEVELS[S.li];
+  var struct,ex='',nw='';
+  if(L.hidden){
+    struct='<section><h2>Color key</h2><p class="muted" style="margin:0 0 10px">Tiles keep their colors. The labels over the rail are hidden.</p><div class="key">'+Object.keys(ROLES).map(function(k){return chip(k);}).join('')+'</div></section>';
+  }else{
+    struct='<section><h2>Structure</h2>'+L.patterns.map(function(p){return '<div class="pattern">'+patternHTML(p)+'</div>';}).join('')+'</section>';
+    ex='<section><h2>'+(L.examples.length>1?'Examples':'Example')+'</h2>'+L.examples.map(function(e){
+      return '<div style="margin-bottom:16px">'+staticRail(e[0])+'<p class="enline" style="margin:8px 0 0">'+e[1]+'</p></div>';}).join('')+'</section>';
+  }
+  if(L.words.length){
+    nw='<section><h2>New blocks</h2><div class="tiles">'+L.words.map(function(id){return tileHTML({wid:id,role:W[id][3]},{stat:true});}).join('')+'</div></section>';
+  }
+  app.innerHTML=
+    '<button class="back" type="button" data-act="home">&larr; All levels</button>'+
+    '<p class="eyebrow" style="margin-top:18px">Level '+(S.li+1)+' of '+LEVELS.length+'</p>'+
+    '<h1>'+L.name+'</h1><p class="lead">'+L.rule+'</p>'+struct+ex+nw+
+    paceHTML()+'<div class="row"><button class="btn" type="button" data-act="start">Start building</button></div>';
+}
+
+function slotHTML(i){
+  var a=S.ex.ans[i],t=S.slots[i],L=LEVELS[S.li];
+  var showLbl=!(L.hidden&&!S.revealStruct);
+  var lbl=showLbl?(a.label||ROLES[a.role].label):'Block '+(i+1);
+  var cls='slot'+(showLbl?'':' neutral')+(S.status&&S.status[i]?' '+S.status[i]:'')+(S.hintSlot===i?' hint':'');
+  return '<div class="'+cls+'" data-slot="'+i+'" style="--h:'+(showLbl?ROLES[a.role].h:250)+'"><span class="slot-label"><i></i>'+lbl+'</span>'+
+    '<div class="well'+(t?' filled':'')+'">'+(t?tileHTML(t,{hint:S.hintUid===t.uid}):'')+'</div></div>';
+}
+
+function renderPlay(){
+  var L=LEVELS[S.li],ex=S.ex,total=L.ex.length;
+  var full=S.slots.every(function(x){return !!x;});
+  var dots='';for(var k=0;k<total;k++){dots+='<i class="'+(k===S.ei&&!S.results[k]?'cur':(S.results[k]||''))+'"></i>';}
+  var fb;
+  if(S.solved){
+    var ids=ex.ans.map(function(a){return a.id;});
+    var shown=S.slots.map(function(t){return t.wid;});
+    fb='<div class="okcard"><p class="tag">Correct</p><p class="zhline">'+shown.map(function(id){return W[id][0];}).join(' ')+'</p><p class="pyline">'+pinyinOf(shown)+'</p><p class="enline">'+ex.en.replace(/ \(.*\)$/,'')+'</p>'+
+      (S.usedAlt?'<p class="note">That order works too. Chinese allows it here.</p>':'')+(ex.note?'<p class="note">'+ex.note+'</p>':'')+'</div>';
+  }else if(S.fb){
+    fb='<p class="fb-bad">'+S.fb+'</p>';
+  }else{
+    fb='<p class="fb-idle">Fill every spot on the rail, then check.</p>';
+  }
+  var actions;
+  if(S.solved){
+    actions='<span class="spacer"></span><button class="btn" type="button" data-act="next">'+(S.ei+1<total?'Next sentence':'Finish level')+'</button>';
+  }else{
+    actions=(L.hidden&&!S.revealStruct?'<button class="btn2" type="button" data-act="reveal">Reveal structure</button>':'')+
+      '<button class="btn2" type="button" data-act="hint">Hint</button><button class="btn2" type="button" data-act="clear">Clear rail</button>'+
+      (S.attempts>=2?'<button class="btn2" type="button" data-act="answer">Show answer</button>':'')+
+      '<span class="spacer"></span><button class="btn" type="button" data-act="check"'+(full?'':' disabled')+'>Check</button>';
+  }
+  var sub=ex.en.match(/ \((.*)\)$/);
+  var title=ex.en.replace(/ \(.*\)$/,'');
+  app.innerHTML=
+    '<div class="playbar"><button class="back" type="button" data-act="home">&larr; Levels</button><span class="eyebrow">Level '+(S.li+1)+' &middot; '+L.name+' &middot; '+(S.ei+1)+' of '+total+'</span>'+(S.timed?'<span class="clock" id="clock" aria-label="Elapsed time">'+fmt(Date.now()-S.t0)+'</span>':'')+'</div>'+
+    '<div class="dots" aria-hidden="true">'+dots+'</div>'+
+    '<section class="prompt" style="margin-top:24px"><p class="eyebrow">Build this sentence</p><h2>'+title+'</h2>'+(sub?'<p class="sub">'+sub[1]+'</p>':'')+'</section>'+
+    '<section style="margin-block:22px"><div class="rail">'+ex.ans.map(function(a,i){return slotHTML(i);}).join('')+'</div></section>'+
+    '<section style="margin-block:0"><p class="eyebrow" style="margin-bottom:8px">Blocks &middot; drag to the rail, or tap a block</p>'+
+    '<div class="bank" id="bank">'+(S.bank.length?S.bank.map(function(t){return tileHTML(t,{hint:S.hintUid===t.uid});}).join(''):'<span class="bank-empty">All blocks are on the rail.</span>')+'</div></section>'+
+    '<div class="actions">'+actions+'</div><div class="fb" role="status" aria-live="polite">'+fb+'</div>';
+}
+
+function renderDone(){
+  var L=LEVELS[S.li];
+  var clean=S.results.filter(function(r){return r==='clean';}).length,total=L.ex.length;
+  var msg=clean===total?'Every sentence on the first try.':(clean>=total/2?'Solid work. Replay to clean up the rest.':'Finished. A second pass will lock the pattern in.');
+  var review=L.ex.map(function(e){
+    var a=P(e[1]).map(function(x){return x.id;});
+    return '<li><span class="zh">'+a.map(function(id){return W[id][0];}).join(' ')+'</span><span class="enl">'+e[0].replace(/ \(.*\)$/,'')+'</span></li>';
+  }).join('');
+  var hasNext=S.li+1<LEVELS.length;
+  app.innerHTML=
+    '<p class="eyebrow">Level '+(S.li+1)+' complete</p><h1>'+clean+' of '+total+' on the first try</h1><p class="lead">'+msg+'</p>'+
+    timeLine()+'<section><h2>Sentences you built</h2><ul class="review">'+review+'</ul></section>'+
+    '<div class="row">'+(hasNext?'<button class="btn" type="button" data-act="nextlevel">Next level</button>':'')+
+    '<button class="btn2" type="button" data-act="replay">Replay</button><button class="btn2" type="button" data-act="home">All levels</button></div>';
+}
+
+/* ---------- game flow ---------- */
+function openIntro(i){S.li=i;S.view='intro';render();window.scrollTo(0,0);}
+function startLevel(i){
+  S.li=i;S.results=[];S.revealStruct=false;
+  S.timed=store.mode==='timed';S.t0=Date.now();S.levelMs=0;
+  if(S.iv){clearInterval(S.iv);S.iv=null;}
+  loadEx(0);
+  if(S.timed)S.iv=setInterval(updClock,250);
+}
+function loadEx(n){
+  var L=LEVELS[S.li],d=L.ex[n];
+  var ans=P(d[1]);
+  var ex={en:d[0],ans:ans,alts:(d[3]||[]).map(function(s){return P(s).map(function(a){return a.id;});}),note:d[2]};
+  var used={};ans.forEach(function(a){used[a.id]=1;});
+  var pool=[];
+  for(var i=0;i<=S.li;i++){LEVELS[i].words.forEach(function(w){if(!used[w])pool.push(w);});}
+  var wantRoles={};ans.forEach(function(a){wantRoles[a.role]=1;});
+  var pref=shuffle(pool.filter(function(w){return wantRoles[W[w][3]];})),rest=shuffle(pool.filter(function(w){return !wantRoles[W[w][3]];}));
+  var count=S.li<2?2:3;
+  var extra=pref.concat(rest).slice(0,count);
+  var tiles=ans.map(function(a){return {uid:n+'-'+a.id,wid:a.id,role:a.role};}).concat(extra.map(function(w){return {uid:n+'-'+w,wid:w,role:W[w][3]};}));
+  S.ex=ex;S.ei=n;S.bank=shuffle(tiles);S.slots=ans.map(function(){return null;});
+  S.status=null;S.fb=null;S.attempts=0;S.hints=0;S.revealed=false;S.solved=false;S.usedAlt=false;S.locked=false;S.hintUid=null;S.hintSlot=null;
+  S.view='play';render();window.scrollTo(0,0);
+}
+function findTile(uid){
+  var i=S.bank.findIndex(function(t){return t.uid===uid;});
+  if(i>=0)return {where:'bank',i:i};
+  i=S.slots.findIndex(function(t){return t&&t.uid===uid;});
+  return i>=0?{where:'slot',i:i}:null;
+}
+function pull(loc){
+  if(loc.where==='bank')return S.bank.splice(loc.i,1)[0];
+  var t=S.slots[loc.i];S.slots[loc.i]=null;return t;
+}
+function clearStatus(){S.status=null;S.fb=null;}
+function moveToSlot(uid,si){
+  var loc=findTile(uid);if(!loc)return;
+  if(loc.where==='slot'&&loc.i===si)return;
+  var occ=S.slots[si],t=pull(loc);
+  if(occ){if(loc.where==='slot')S.slots[loc.i]=occ;else S.bank.push(occ);}
+  S.slots[si]=t;clearStatus();
+}
+function moveToBank(uid){
+  var loc=findTile(uid);if(!loc||loc.where==='bank')return;
+  S.bank.push(pull(loc));clearStatus();
+}
+function tap(uid){
+  var loc=findTile(uid);if(!loc)return;
+  if(loc.where==='bank'){var si=S.slots.findIndex(function(x){return !x;});if(si>=0)moveToSlot(uid,si);}
+  else moveToBank(uid);
+}
+function check(){
+  if(S.solved||!S.slots.every(function(x){return !!x;}))return;
+  S.attempts++;
+  var seq=S.slots.map(function(t){return t.wid;});
+  var cands=[S.ex.ans.map(function(a){return a.id;})].concat(S.ex.alts);
+  var hit=cands.filter(function(c){return c.every(function(w,i){return w===seq[i];});})[0];
+  if(hit){
+    S.solved=true;S.locked=true;S.usedAlt=hit!==cands[0];S.status=seq.map(function(){return 'ok';});S.fb=null;
+    var peeked=LEVELS[S.li].hidden&&S.revealStruct;
+    S.results[S.ei]=(S.attempts===1&&!S.hints&&!S.revealed&&!peeked)?'clean':'assisted';
+  }else{
+    var best=cands[0],bn=-1;
+    cands.forEach(function(c){var n=c.filter(function(w,i){return w===seq[i];}).length;if(n>bn){bn=n;best=c;}});
+    S.status=seq.map(function(w,i){return w===best[i]?'ok':'bad';});
+    S.fb='Not quite. '+bn+' of '+seq.length+' blocks are in the right spot. Move the ones marked with a cross, then check again.';
+  }
+  render();
+}
+function hint(){
+  if(S.solved)return;
+  S.hints++;
+  var ans=S.ex.ans,i;
+  for(i=0;i<ans.length;i++){if(!S.slots[i]||S.slots[i].wid!==ans[i].id)break;}
+  if(i>=ans.length)return;
+  var want=ans[i].id,uid=null;
+  S.bank.concat(S.slots.filter(Boolean)).forEach(function(t){if(t.wid===want)uid=t.uid;});
+  S.hintUid=uid;S.hintSlot=i;render();
+  var snap=S.ei;
+  setTimeout(function(){if(S.view==='play'&&S.ei===snap&&!drag){S.hintUid=null;S.hintSlot=null;render();}},2600);
+}
+function showAnswer(){
+  if(S.solved)return;
+  S.revealed=true;
+  var all=S.bank.concat(S.slots.filter(Boolean));
+  S.bank=all.filter(function(t){return !S.ex.ans.some(function(a){return a.id===t.wid;});});
+  S.slots=S.ex.ans.map(function(a){return all.filter(function(t){return t.wid===a.id;})[0];});
+  check();
+}
+function clearRail(){
+  S.slots.forEach(function(t,i){if(t){S.bank.push(t);S.slots[i]=null;}});
+  clearStatus();render();
+}
+function nextEx(){
+  var L=LEVELS[S.li];
+  if(S.ei+1<L.ex.length){loadEx(S.ei+1);return;}
+  var clean=S.results.filter(function(r){return r==='clean';}).length;
+  var prev=store.done[L.id];
+  if(!prev||clean>prev.clean)store.done[L.id]={clean:clean,total:L.ex.length};
+  if(S.timed){S.levelMs=Date.now()-S.t0;var bt=store.bestTime[L.id];if(!bt||S.levelMs<bt)store.bestTime[L.id]=S.levelMs;}
+  save();S.view='done';render();window.scrollTo(0,0);
+}
+
+/* ---------- recognition game: see a character, pick the meaning ---------- */
+var SETS={
+ all:['Every word',null],
+ things:['People and things',['s','o']],
+ actions:['Actions',['v']],
+ when:['Time and place',['t','p']],
+ describe:['Describing words',['adj','deg']],
+ count:['Numbers and counters',['num','mw']],
+ little:['Little words',['asp','neg','q','poss']]
+};
+function setIds(k){var rs=SETS[k][1];return Object.keys(W).filter(function(id){return !rs||rs.indexOf(W[id][3])>=0;});}
+var R=null;
+function rOpts(){
+  var id=R.q[R.i],role=W[id][3],gl=W[id][2];
+  var ok=function(x){return x!==id&&W[x][2]!==gl;};
+  var same=shuffle(Object.keys(W).filter(function(x){return ok(x)&&W[x][3]===role;}));
+  var other=shuffle(Object.keys(W).filter(function(x){return ok(x)&&W[x][3]!==role;}));
+  var pool=same.concat(other),out=[id],seen={};seen[gl]=1;
+  for(var j=0;j<pool.length&&out.length<4;j++){var g=W[pool[j]][2];if(!seen[g]){seen[g]=1;out.push(pool[j]);}}
+  R.opts=shuffle(out);
+}
+function rStart(k){
+  R={set:k,q:shuffle(setIds(k)).slice(0,10),i:0,score:0,picked:null,opts:[],missed:[],res:[],stage:'play'};
+  rOpts();S.view='recog';render();window.scrollTo(0,0);
+}
+function rPick(i){
+  if(!R||R.picked!==null)return;
+  var id=R.q[R.i];R.picked=i;
+  if(R.opts[i]===id){R.score++;R.res[R.i]='clean';}
+  else{R.missed.push(id);R.res[R.i]='miss';}
+  render();
+}
+function rNext(){
+  if(!R||R.picked===null)return;
+  if(R.i+1<R.q.length){R.i++;R.picked=null;rOpts();}
+  else{
+    R.stage='end';
+    if(store.best[R.set]==null||R.score>store.best[R.set]){store.best[R.set]=R.score;save();}
+  }
+  render();window.scrollTo(0,0);
+}
+function recogSection(){
+  var btns=Object.keys(SETS).map(function(k){
+    var n=setIds(k).length,len=Math.min(10,n),b=store.best[k];
+    return '<button class="setbtn" type="button" data-act="rstart" data-set="'+k+'"><b>'+SETS[k][0]+'</b><span>'+n+' words'+(b!=null?' &middot; best '+b+' of '+len:'')+'</span></button>';
+  }).join('');
+  return '<section><p class="eyebrow">Mini game</p><h2>Know the Character</h2>'+
+    '<p class="muted" style="margin:0;max-width:62ch">A character and its pinyin appear. Pick what it means. Ten characters per round, drawn from the set you choose.</p>'+
+    '<div class="sets">'+btns+'</div></section>';
+}
+function renderRecog(){
+  var len=R.q.length;
+  if(R.stage==='end'){
+    var msg=R.score>=len-1?'Sharp. Try a bigger set.':(R.score>=len*0.6?'Good run. A second pass will tighten it.':'Run it again. Characters stick with repetition.');
+    var missed=R.missed.length?'<section><h2>Review these</h2><div class="tiles">'+R.missed.map(function(id){return tileHTML({wid:id,role:W[id][3]},{stat:true});}).join('')+'</div></section>':'';
+    app.innerHTML=
+      '<p class="eyebrow">Know the Character &middot; '+SETS[R.set][0]+'</p><h1>'+R.score+' of '+len+' correct</h1><p class="lead">'+msg+'</p>'+missed+
+      '<div class="row"><button class="btn" type="button" data-act="rstart" data-set="'+R.set+'">Play again</button><button class="btn2" type="button" data-act="home">All games</button></div>';
+    return;
+  }
+  var id=R.q[R.i],w=W[id],done=R.picked!==null;
+  var dots='';for(var k=0;k<len;k++){dots+='<i class="'+(k===R.i&&!R.res[k]?'cur':(R.res[k]||''))+'"></i>';}
+  var right=done&&R.opts[R.picked]===id;
+  var reveal=done?'<span class="meaning">'+w[2]+'</span><span>'+chip(w[3],true)+'</span>':'';
+  var verdict=done?(right?'<p class="v-ok">Correct.</p>':'<p class="fb-bad">Not quite. It means &ldquo;'+w[2]+'&rdquo;.</p>'):'<p class="fb-idle">Pick the meaning.</p>';
+  var choices=R.opts.map(function(oid,i){
+    var cls='choice';
+    if(done){if(oid===id)cls+=' right';else if(i===R.picked)cls+=' wrong';}
+    return '<button class="'+cls+'" type="button" data-act="rpick" data-i="'+i+'"'+(done?' aria-disabled="true"':'')+'>'+W[oid][2]+'</button>';
+  }).join('');
+  app.innerHTML=
+    '<div class="playbar"><button class="back" type="button" data-act="home">&larr; Levels</button><span class="eyebrow">'+SETS[R.set][0]+' &middot; '+(R.i+1)+' of '+len+' &middot; '+R.score+' correct</span></div>'+
+    '<div class="dots" aria-hidden="true">'+dots+'</div>'+
+    '<section style="margin-top:24px"><p class="eyebrow">What does this mean?</p></section>'+
+    '<div class="rq"><span class="big" lang="zh">'+w[0]+'</span><span class="py">'+w[1]+'</span>'+reveal+'</div>'+
+    '<div class="choices">'+choices+'</div>'+
+    '<div class="fb" role="status" aria-live="polite">'+verdict+'</div>'+
+    '<div class="actions"><span class="spacer"></span>'+(done?'<button class="btn" type="button" data-act="rnext">'+(R.i+1<len?'Next character':'See results')+'</button>':'')+'</div>';
+}
+
+/* ---------- clicks ---------- */
+app.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');if(!b)return;
+  var act=b.dataset.act;
+  if(act==='home'){S.view='home';render();window.scrollTo(0,0);}
+  else if(act==='level')openIntro(+b.dataset.i);
+  else if(act==='start')startLevel(S.li);
+  else if(act==='check')check();
+  else if(act==='hint')hint();
+  else if(act==='clear')clearRail();
+  else if(act==='answer')showAnswer();
+  else if(act==='reveal'){S.revealStruct=true;render();}
+  else if(act==='next')nextEx();
+  else if(act==='replay')startLevel(S.li);
+  else if(act==='nextlevel')openIntro(S.li+1);
+  else if(act==='rstart')rStart(b.dataset.set);
+  else if(act==='rpick')rPick(+b.dataset.i);
+  else if(act==='rnext')rNext();
+  else if(act==='mode'){store.mode=b.dataset.m==='timed'?'timed':'relaxed';save();render();}
+  else if(act==='openall'){store.openAll=true;save();render();}
+  else if(act==='reset'){store.done={};store.best={};store.bestTime={};store.openAll=false;save();render();}
+});
+document.getElementById('brand').addEventListener('click',function(){S.view='home';render();window.scrollTo(0,0);});
+document.getElementById('optPy').checked=store.py;
+document.getElementById('optEn').checked=store.en;
+document.getElementById('optPy').addEventListener('change',function(e){store.py=e.target.checked;save();render();});
+document.getElementById('optEn').addEventListener('change',function(e){store.en=e.target.checked;save();render();});
+
+/* ---------- drag and drop (pointer events, so touch works too) ---------- */
+var drag=null;
+function clearOver(){Array.prototype.forEach.call(document.querySelectorAll('.over'),function(n){n.classList.remove('over');});}
+function hover(x,y){
+  clearOver();
+  var t=document.elementFromPoint(x,y);if(!t)return;
+  var sl=t.closest('.slot'),bk=t.closest('#bank');
+  if(sl)sl.classList.add('over');else if(bk)bk.classList.add('over');
+}
+app.addEventListener('pointerdown',function(e){
+  if(S.view!=='play'||S.locked)return;
+  var el=e.target.closest('.tile[data-uid]');if(!el)return;
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  var r=el.getBoundingClientRect();
+  drag={uid:el.dataset.uid,el:el,sx:e.clientX,sy:e.clientY,ox:e.clientX-r.left,oy:e.clientY-r.top,w:r.width,moved:false,ghost:null};
+});
+document.addEventListener('pointermove',function(e){
+  if(!drag)return;
+  if(!drag.moved){
+    if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<6)return;
+    drag.moved=true;
+    var g=drag.el.cloneNode(true);g.removeAttribute('data-uid');g.removeAttribute('tabindex');g.classList.add('ghost');g.style.width=drag.w+'px';
+    document.body.appendChild(g);drag.ghost=g;drag.el.classList.add('dragging');
+  }
+  drag.ghost.style.transform='translate('+(e.clientX-drag.ox)+'px,'+(e.clientY-drag.oy)+'px) rotate(-2deg)';
+  hover(e.clientX,e.clientY);
+});
+function endDrag(e,cancel){
+  if(!drag)return;
+  var d=drag;drag=null;
+  if(d.ghost)d.ghost.remove();
+  clearOver();
+  if(!d.moved){if(!cancel){tap(d.uid);render();}return;}
+  if(!cancel){
+    var t=document.elementFromPoint(e.clientX,e.clientY);
+    var sl=t&&t.closest('.slot'),bk=t&&t.closest('#bank');
+    if(sl)moveToSlot(d.uid,+sl.dataset.slot);else if(bk)moveToBank(d.uid);
+  }
+  render();
+}
+document.addEventListener('pointerup',function(e){endDrag(e,false);});
+document.addEventListener('pointercancel',function(e){endDrag(e,true);});
+app.addEventListener('keydown',function(e){
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  var el=e.target.closest('.tile[data-uid]');if(!el||S.locked)return;
+  e.preventDefault();S.focusUid=el.dataset.uid;
+  tap(el.dataset.uid);
+  render();
+});
+
+/* ---------- top bar: Statement and About ---------- */
+document.querySelector('.topbar').addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');if(!b)return;
+  S.view=b.dataset.act==='about'?'about':'statement';render();window.scrollTo(0,0);
+});
+
+/* ---------- night train backdrop: wireframe scene with speed and brightness ---------- */
+(function(){
+  var cv=document.getElementById('scene');
+  if(!cv||!cv.getContext)return;
+  var ctx=cv.getContext('2d');
+  var SKEY='hanzirail.scene',cfg={speed:12,bright:30};
+  var calm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(calm)cfg.speed=0;
+  try{var rs=JSON.parse(localStorage.getItem(SKEY)||'null');if(rs){
+    if(typeof rs.speed==='number')cfg.speed=Math.min(60,Math.max(0,rs.speed));
+    if(typeof rs.bright==='number')cfg.bright=Math.min(100,Math.max(0,rs.bright));
+  }}catch(e){}
+  function saveCfg(){try{localStorage.setItem(SKEY,JSON.stringify(cfg));}catch(e){}}
+
+  var CW=0,CH=0,FOC=1,ink='#1d2332',dirty=true,bk=0.3;
+  function readInk(){
+    var root=document.documentElement,t=root.getAttribute('data-theme');
+    var dark=t==='dark'||(t!=='light'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+    ink=dark?'#eef1f6':'#1d2332';dirty=true;
+  }
+  function resize(){
+    var dpr=Math.min(window.devicePixelRatio||1,1.5);
+    CW=cv.width=Math.round(innerWidth*dpr);
+    CH=cv.height=Math.round(innerHeight*dpr);
+    FOC=Math.min(CW,CH*1.5)*0.95;
+    ctx.lineWidth=Math.max(1,dpr);
+    ctx.lineJoin='round';
+    dirty=true;
+  }
+
+  /* camera: front-left, above the track */
+  var CP=[-9,5.2,14],TG=[1.5,1.6,-9];
+  function norm(v){var l=Math.hypot(v[0],v[1],v[2]);return [v[0]/l,v[1]/l,v[2]/l];}
+  function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+  var FV=norm([TG[0]-CP[0],TG[1]-CP[1],TG[2]-CP[2]]);
+  var RV=norm(cross(FV,[0,1,0]));
+  var UV=cross(RV,FV);
+  var NEAR=0.4,yoff=0;
+  var A=[0,0,0],B=[0,0,0];
+  function toCam(x,y,z,o){
+    var dx=x-CP[0],dy=y+yoff-CP[1],dz=z-CP[2];
+    o[0]=dx*RV[0]+dy*RV[1]+dz*RV[2];
+    o[1]=dx*UV[0]+dy*UV[1]+dz*UV[2];
+    o[2]=dx*FV[0]+dy*FV[1]+dz*FV[2];
+  }
+  function seg(x1,y1,z1,x2,y2,z2){
+    toCam(x1,y1,z1,A);toCam(x2,y2,z2,B);
+    if(A[2]<NEAR&&B[2]<NEAR)return;
+    if(A[2]<NEAR){var t=(NEAR-A[2])/(B[2]-A[2]);A[0]+=(B[0]-A[0])*t;A[1]+=(B[1]-A[1])*t;A[2]=NEAR;}
+    else if(B[2]<NEAR){var u=(NEAR-B[2])/(A[2]-B[2]);B[0]+=(A[0]-B[0])*u;B[1]+=(A[1]-B[1])*u;B[2]=NEAR;}
+    ctx.moveTo(CW/2+A[0]/A[2]*FOC,CH/2-A[1]/A[2]*FOC);
+    ctx.lineTo(CW/2+B[0]/B[2]*FOC,CH/2-B[1]/B[2]*FOC);
+  }
+  function pt(x,y,z,o){toCam(x,y,z,o);o[3]=CW/2+o[0]/o[2]*FOC;o[4]=CH/2-o[1]/o[2]*FOC;}
+
+  /* train geometry */
+  var SEC=[[-1.4,0.6],[-1.4,3.2],[-1.0,3.9],[1.0,3.9],[1.4,3.2],[1.4,0.6]];
+  var NOSE_S=0.7,CY=2.2;
+  var FRONT=SEC.map(function(p){return [p[0]*NOSE_S,CY+(p[1]-CY)*NOSE_S];});
+  var Z_FULL=-5,CAR=15,CARS=4,Z_END=Z_FULL-CAR*CARS;
+  function ringVisible(z){for(var i=0;i<4;i++)seg(SEC[i][0],SEC[i][1],z,SEC[i+1][0],SEC[i+1][1],z);}
+  function drawTrain(wheelAng){
+    var i,j,k,w,z,zs;
+    ctx.beginPath();
+    for(i=0;i<6;i++){
+      j=(i+1)%6;
+      seg(FRONT[i][0],FRONT[i][1],0,FRONT[j][0],FRONT[j][1],0);
+      seg(FRONT[i][0],FRONT[i][1],0,SEC[i][0],SEC[i][1],Z_FULL);
+    }
+    seg(-0.55,2.9,0,0.55,2.9,0);seg(0.55,2.9,0,0.55,2.1,0);
+    seg(0.55,2.1,0,-0.55,2.1,0);seg(-0.55,2.1,0,-0.55,2.9,0);
+    for(i=0;i<5;i++)seg(SEC[i][0],SEC[i][1],Z_FULL,SEC[i][0],SEC[i][1],Z_END);
+    seg(-1.4,1.6,Z_FULL,-1.4,1.6,Z_END);seg(-1.4,3.0,Z_FULL,-1.4,3.0,Z_END);
+    for(z=Z_FULL;z>=Z_END;z-=2.5)ringVisible(z);
+    for(k=0;k<=CARS;k++){ringVisible(Z_FULL-k*CAR-0.25);}
+    for(k=0;k<CARS;k++){
+      zs=Z_FULL-k*CAR;
+      for(w=0;w<4;w++){
+        var z1=zs-3.0-w*2.7,z2=z1-1.7;
+        seg(-1.4,2.2,z1,-1.4,2.9,z1);seg(-1.4,2.9,z1,-1.4,2.9,z2);
+        seg(-1.4,2.9,z2,-1.4,2.2,z2);seg(-1.4,2.2,z2,-1.4,2.2,z1);
+      }
+      seg(-1.4,0.8,zs-1.0,-1.4,3.0,zs-1.0);seg(-1.4,0.8,zs-2.2,-1.4,3.0,zs-2.2);
+    }
+    var r=0.45,wx=-0.75;
+    for(k=0;k<CARS;k++){
+      zs=Z_FULL-k*CAR;
+      [zs-3.5,zs-11.5].forEach(function(bz){
+        seg(-1.1,0.7,bz-1.5,-1.1,0.7,bz+1.5);
+        [bz-0.9,bz+0.9].forEach(function(wz){
+          for(var s2=0;s2<6;s2++){
+            var a1=s2*Math.PI/3,a2=(s2+1)*Math.PI/3;
+            seg(wx,r+Math.cos(a1)*r,wz+Math.sin(a1)*r,wx,r+Math.cos(a2)*r,wz+Math.sin(a2)*r);
+          }
+          seg(wx,r,wz,wx,r+Math.cos(wheelAng)*r,wz+Math.sin(wheelAng)*r);
+        });
+      });
+    }
+    ctx.strokeStyle=ink;ctx.globalAlpha=bk;ctx.stroke();
+  }
+
+  /* ground: rails, sleepers, lineside poles */
+  var SLP=1.5,NSL=40,SL_RANGE=SLP*NSL,POLE=12,NPOLE=7;
+  function drawGround(dist){
+    var k,z;
+    ctx.beginPath();
+    seg(-0.75,0,-110,-0.75,0,14);seg(0.75,0,-110,0.75,0,14);
+    seg(-0.88,0,-110,-0.88,0,14);seg(0.88,0,-110,0.88,0,14);
+    for(k=0;k<NSL;k++){
+      z=13-((k*SLP+dist)%SL_RANGE);
+      seg(-1.6,0,z,1.6,0,z);seg(-1.6,0,z-0.28,1.6,0,z-0.28);
+    }
+    ctx.strokeStyle=ink;ctx.globalAlpha=0.8*bk;ctx.stroke();
+    ctx.beginPath();
+    for(k=0;k<NPOLE;k++){
+      z=12-((k*POLE+dist)%(POLE*NPOLE));
+      seg(-4,0,z,-4,6.5,z);seg(-4,6.5,z,-1.2,6.5,z);
+    }
+    ctx.globalAlpha=0.4*bk;ctx.stroke();
+  }
+
+  /* headlights */
+  var LAMPS=[[-0.8,1.3,0.03],[0.8,1.3,0.03]];
+  var BEAM_Z=11,BW=1.7,P0=[0,0,0,0,0],P1=[0,0,0,0,0],PL=[0,0,0,0,0];
+  function drawBeams(clock,flick){
+    var li,i,k;
+    ctx.fillStyle=ink;ctx.globalAlpha=0.2*bk;
+    ctx.beginPath();
+    for(li=0;li<LAMPS.length;li++){
+      var L=LAMPS[li],x=L[0],c=[[x-BW,0.02],[x+BW,0.02],[x+BW,3.4],[x-BW,3.4]];
+      pt(L[0],L[1],L[2],PL);
+      for(i=0;i<4;i++){
+        var a=c[i],b=c[(i+1)%4];
+        pt(a[0],a[1],BEAM_Z,P0);pt(b[0],b[1],BEAM_Z,P1);
+        ctx.moveTo(PL[3],PL[4]);ctx.lineTo(P0[3],P0[4]);ctx.lineTo(P1[3],P1[4]);ctx.closePath();
+      }
+    }
+    ctx.fill();
+    ctx.beginPath();
+    for(k=0;k<4;k++){
+      var tz=(clock*7+k*3)%12,hw=0.9+tz*0.2,y0=Math.max(0.02,1.0-tz*0.09),y1=1.8+tz*0.14;
+      seg(-hw,y0,tz,hw,y0,tz);seg(hw,y0,tz,hw,y1,tz);seg(hw,y1,tz,-hw,y1,tz);seg(-hw,y1,tz,-hw,y0,tz);
+    }
+    ctx.strokeStyle=ink;ctx.globalAlpha=0.5*flick*bk;ctx.stroke();
+    ctx.fillStyle=ink;ctx.globalAlpha=flick*bk;
+    for(li=0;li<LAMPS.length;li++){
+      pt(LAMPS[li][0],LAMPS[li][1],LAMPS[li][2],PL);
+      ctx.beginPath();ctx.arc(PL[3],PL[4],Math.max(2,0.17/PL[2]*FOC),0,6.2832);ctx.fill();
+    }
+  }
+
+  /* loop: idle frames cost nothing when the train is stopped or dark */
+  var dist=0,clock=0,last=0,n=0;
+  function frame(ts){
+    requestAnimationFrame(frame);
+    if(!last)last=ts;
+    var dt=Math.min(0.05,(ts-last)/1000);last=ts;
+    var moving=cfg.speed>0&&cfg.bright>0;
+    if(moving){dist+=cfg.speed*dt;clock+=dt;}
+    if(!moving&&!dirty)return;
+    dirty=false;
+    ctx.clearRect(0,0,CW,CH);
+    if(cfg.bright===0)return;
+    bk=cfg.bright/100;
+    yoff=0;drawGround(dist);
+    yoff=Math.sin(clock*13)*0.012;
+    drawTrain(-dist/0.45);
+    yoff=0;
+    drawBeams(clock,0.9+0.1*Math.sin(clock*28));
+    ctx.globalAlpha=1;
+  }
+
+  /* controls */
+  var sp=document.getElementById('sceneSpeed'),br=document.getElementById('sceneBright');
+  var spv=document.getElementById('sceneSpeedVal'),brv=document.getElementById('sceneBrightVal');
+  function showVals(){
+    spv.textContent=cfg.speed===0?'stopped':Math.round(cfg.speed/60*100)+'%';
+    brv.textContent=cfg.bright===0?'off':cfg.bright+'%';
+  }
+  sp.value=cfg.speed;br.value=cfg.bright;showVals();
+  sp.addEventListener('input',function(){cfg.speed=+sp.value;saveCfg();showVals();dirty=true;});
+  br.addEventListener('input',function(){cfg.bright=+br.value;saveCfg();showVals();dirty=true;});
+
+  try{new MutationObserver(readInk).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
+  if(window.matchMedia){var mq=window.matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',readInk);}
+  window.addEventListener('resize',resize);
+  resize();readInk();requestAnimationFrame(frame);
+})();
+
+/* ---------- offline: the page and its fonts are saved on the first visit ---------- */
+(function(){
+  if(!('serviceWorker' in navigator)||!/^https?:$/.test(location.protocol))return;
+  function warm(){
+    try{
+      /* fetch again now that the worker is in charge, so the font files land in its cache */
+      Array.prototype.forEach.call(document.querySelectorAll('link[rel="stylesheet"]'),function(l){
+        if(/fonts\.googleapis\.com/.test(l.href))fetch(l.href).catch(function(){});
+      });
+      (performance.getEntriesByType('resource')||[]).forEach(function(r){
+        if(/fonts\.gstatic\.com/.test(r.name))fetch(r.name,{mode:'cors'}).catch(function(){});
+      });
+      /* ask for every character the game uses, so each font slice is saved */
+      var chars=Object.keys(W).map(function(k){return W[k][0];}).join('');
+      if(document.fonts&&document.fonts.load){
+        document.fonts.load('500 28px "Noto Sans SC"',chars).catch(function(){});
+        document.fonts.load('700 28px "Noto Sans SC"',chars).catch(function(){});
+      }
+    }catch(e){}
+  }
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').then(function(){return navigator.serviceWorker.ready;}).then(warm).catch(function(){});
+  });
+})();
+
+render();
+})();
+</script>
+</body>
+</html>
