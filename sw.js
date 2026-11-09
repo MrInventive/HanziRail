@@ -2,7 +2,7 @@
    Saves the page and its fonts on the first visit, so the game plays with no connection afterward.
    Tip and feedback links are other websites and always use the network.
    To push an update to everyone, change the version number below. */
-var CACHE = 'hanzirail-v1';
+var CACHE = 'hanzirail-v2';
 var CORE = ['./', 'index.html'];
 
 self.addEventListener('install', function (e) {
