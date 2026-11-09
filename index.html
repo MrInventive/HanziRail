@@ -472,7 +472,11 @@ var LEVELS=[
 /* ---------- sentence generator: tops every level up to 40 sentences ---------- */
 (function(){
 var TARGET=40;
-function pick(a){return a[Math.floor(Math.random()*a.length)];}
+/* seeded random numbers: the same seed always builds the same sentence list */
+var rng=Math.random;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function rnd(){return rng();}
+function pick(a){return a[Math.floor(rnd()*a.length)];}
 function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
 function J(a){return a.filter(Boolean).join(' ');}
 
@@ -590,7 +594,7 @@ var N3={le:'了 sits right after the verb to mark a finished action.',zai:'在 b
 function g3(){
  var kind=pick(['le','zai','hui']),s=pick(PEOPLE);
  var a=pick(ACTS.filter(function(x){return !x.st&&!(kind==='zai'&&x.mv);}));
- var t=Math.random()<0.5?pick(T3[kind]):null;
+ var t=rnd()<0.5?pick(T3[kind]):null;
  var v=kind==='le'?a.pa:(kind==='zai'?J([beF(s),a.ing]):'will '+a.b);
  var en=cap(J([sEn(s),v,np(a),t?TEN[t]:'']))+'.';
  var rest=kind==='le'?[a.v,'le',a.o]:[kind,a.v,a.o];
@@ -601,7 +605,7 @@ var T4={bu:['jintian','meitian','xianzai'],mei:['zuotian','jintian'],hui:['mingt
 function g4(){
  var kind=pick(['bu','bu','mei','hui']),s=pick(PEOPLE);
  var a=pick(ACTS.filter(function(x){return kind==='bu'||!x.st;}));
- var t=(!a.st&&Math.random()<0.4)?pick(T4[kind]):null;
+ var t=(!a.st&&rnd()<0.4)?pick(T4[kind]):null;
  var aux=kind==='bu'?J([doF(s),'not']):(kind==='mei'?'did not':'will not');
  var en=cap(J([sEn(s),aux,a.b,np(a),t?TEN[t]:'']))+'.';
  var rest=kind==='hui'?['bu','hui',a.v,a.o]:[kind==='bu'?'bu':'mei',a.v,a.o];
@@ -621,7 +625,7 @@ function g5(){
   return ent(cap(J(['did',sEn(s),a.b,np(a)]))+'?',[J([s,a.v,'le',a.o,'ma']),[]],'了 marks the finished action, 吗 closes the question.');
  }
  if(kind==='hui'){
-  a=pick(ACTS.filter(function(x){return !x.st;}));t=Math.random()<0.6?pick(['mingtian','zhoumo','wanshang','xiawu']):null;
+  a=pick(ACTS.filter(function(x){return !x.st;}));t=rnd()<0.6?pick(['mingtian','zhoumo','wanshang','xiawu']):null;
   var r=ST(s,t,['hui',a.v,a.o,'ma']);
   return ent(cap(J(['will',sEn(s),a.b,np(a),t?TEN[t]:'']))+'?',r,'会 shows the future. Every block keeps its place, and 吗 closes the sentence.');
  }
@@ -636,9 +640,9 @@ function g5(){
 
 function g6(){
  var sid,sen,be,adjs,k;
- if(Math.random()<0.5){var s=pick(PEOPLE);sid=s;sen=sEn(s);be=beF(s);adjs=PADJ;}
+ if(rnd()<0.5){var s=pick(PEOPLE);sid=s;sen=sEn(s);be=beF(s);adjs=PADJ;}
  else{k=pick(THINGS);sid=k+':s';sen='the '+THING[k][0];be=thBe(k);adjs=THING[k][1].split(' ');}
- var adj=pick(adjs),ae=ADJEN[adj],r=Math.random();
+ var adj=pick(adjs),ae=ADJEN[adj],r=rnd();
  if(r<0.5)return ent(cap(J([sen,be,ae]))+'.',[J([sid,'hen',adj]),[]],'很 links the subject to the adjective. There is no verb to be.');
  if(r<0.75)return ent(cap(J([sen,be,'not',ae]))+'.',[J([sid,'bu',adj]),[]],'不 goes before the adjective, and the 很 drops out.');
  return ent(cap(J([be,sen,ae]))+'?',[J([sid,adj,'ma']),[]],'In a yes/no question the 很 drops out and 吗 closes the sentence.');
@@ -650,7 +654,7 @@ function g7(){
 }
 
 function g8(){
- var o=pick(PEOPLE),r=Math.random(),k;
+ var o=pick(PEOPLE),r=rnd(),k;
  if(r<0.25){k=pick(THINGS);return ent(poss(o)+' '+THING[k][0],[J([o+':s:Owner','de',k+':o:Thing']),[]],'Owner, then 的, then the thing owned.');}
  if(r<0.45){k=pick(THINGS.filter(function(x){return x!=='yifu';}));return ent(cap('this is '+poss(o)+' '+THING[k][0])+'.',[J(['zhe','shi',o+':s:Owner','de',k+':o:Thing']),[]],'是 links two nouns, just as is does in English.');}
  if(r<0.8){
@@ -718,18 +722,34 @@ function fill(L,fn){
  }
  L.ex=out;
 }
-LEVELS.forEach(function(L){fill(L,GENS[L.id]);});
+var SEEDKEY='hanzirail.seeds',seeds={};
+try{seeds=JSON.parse(localStorage.getItem(SEEDKEY)||'{}')||{};}catch(e){seeds={};}
+function saveSeeds(){try{localStorage.setItem(SEEDKEY,JSON.stringify(seeds));}catch(e){}}
+function newSeed(){return Math.floor(Math.random()*2147483646)+1;}
+function build(L){
+ if(!L.base)L.base=L.ex.slice();
+ L.ex=L.base.slice();
+ rng=mulberry32(L.seed);
+ fill(L,GENS[L.id]);
+}
+LEVELS.forEach(function(L){
+ L.seed=+seeds[L.id]||0;
+ if(!L.seed){L.seed=newSeed();seeds[L.id]=L.seed;saveSeeds();}
+ L.reroll=function(){L.seed=newSeed();seeds[L.id]=L.seed;saveSeeds();build(L);};
+ build(L);
+});
 })();
 
 /* ---------- saved progress ---------- */
 var KEY='hanzirail.v1';
-var store={done:{},best:{},bestTime:{},mode:'relaxed',openAll:false,py:true,en:false};
-try{var raw=localStorage.getItem(KEY);if(raw){var j=JSON.parse(raw);store.done=j.done||{};store.best=j.best||{};store.bestTime=j.bestTime||{};store.mode=j.mode==='timed'?'timed':'relaxed';store.openAll=!!j.openAll;store.py=j.py!==false;store.en=!!j.en;}}catch(e){}
+var store={done:{},best:{},bestTime:{},resume:{},mode:'relaxed',openAll:false,py:true,en:false};
+try{var raw=localStorage.getItem(KEY);if(raw){var j=JSON.parse(raw);store.done=j.done||{};store.best=j.best||{};store.bestTime=j.bestTime||{};store.resume=j.resume||{};store.mode=j.mode==='timed'?'timed':'relaxed';store.openAll=!!j.openAll;store.py=j.py!==false;store.en=!!j.en;}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
 
 /* ---------- state ---------- */
-var S={iv:null,t0:0,timed:false,levelMs:0,view:'home',li:0,ei:0,ex:null,bank:[],slots:[],status:null,fb:null,attempts:0,hints:0,revealed:false,revealStruct:false,solved:false,usedAlt:false,locked:false,results:[],hintUid:null,hintSlot:null,focusUid:null};
+var S={pausedMs:null,iv:null,t0:0,timed:false,levelMs:0,view:'home',li:0,ei:0,ex:null,bank:[],slots:[],status:null,fb:null,attempts:0,hints:0,revealed:false,revealStruct:false,solved:false,usedAlt:false,locked:false,results:[],hintUid:null,hintSlot:null,focusUid:null};
 var app=document.getElementById('app');
+var lastView='home';
 
 function unlocked(i){return i===0||store.openAll||!!store.done[LEVELS[i-1].id];}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
@@ -757,6 +777,8 @@ function pinyinOf(ids){return ids.map(function(id){return W[id][1];}).join(' ');
 
 /* ---------- views ---------- */
 function render(){
+  if(lastView==='play'&&S.view!=='play'&&S.view!=='done')saveResume();
+  lastView=S.view;
   if(S.view!=='play'&&S.iv){clearInterval(S.iv);S.iv=null;}
   document.body.dataset.py=store.py?'1':'0';
   document.body.dataset.en=store.en?'1':'0';
@@ -810,12 +832,13 @@ function renderAbout(){
 }
 
 function renderHome(){
-  var done=Object.keys(store.done).length;
+  var done=Object.keys(store.done).length+Object.keys(store.resume).length;
   var key=Object.keys(ROLES).map(function(k){return chip(k);}).join('');
   var rows=LEVELS.map(function(L,i){
     var open=unlocked(i),d=store.done[L.id];
     var bt=store.bestTime[L.id];
-    var st=d?(d.clean+' of '+d.total+' first try'+(bt?' &middot; best '+fmt(bt):'')):(open?'Ready':'Locked');
+    var rz=resumeFor(i);
+    var st=d?(d.clean+' of '+d.total+' first try'+(bt?' &middot; best '+fmt(bt):'')):(rz?'In progress &middot; '+rz.done+' of '+L.ex.length:(open?'Ready':'Locked'));
     var mini=L.hidden?'<span class="eyebrow">Structure hidden</span>':patternHTML(L.patterns[0],true);
     return '<button class="lvl" type="button" data-act="level" data-i="'+i+'"'+(open?'':' disabled')+'>'+
       '<span class="lvl-n">'+(i+1)+'</span><span class="lvl-main"><b>'+L.name+'</b><span class="mini">'+mini+'</span></span><span class="lvl-st">'+st+'</span></button>';
@@ -846,7 +869,7 @@ function renderIntro(){
     '<button class="back" type="button" data-act="home">&larr; All levels</button>'+
     '<p class="eyebrow" style="margin-top:18px">Level '+(S.li+1)+' of '+LEVELS.length+'</p>'+
     '<h1>'+L.name+'</h1><p class="lead">'+L.rule+'</p>'+struct+ex+nw+
-    paceHTML()+'<div class="row"><button class="btn" type="button" data-act="start">Start building</button></div>';
+    paceHTML()+startRow();
 }
 
 function slotHTML(i){
@@ -912,11 +935,50 @@ function renderDone(){
 
 /* ---------- game flow ---------- */
 function openIntro(i){S.li=i;S.view='intro';render();window.scrollTo(0,0);}
+/* saved place: which sentence you are on, how each one went, and the clock */
+function saveResume(){
+  var L=LEVELS[S.li];
+  if(!L||!S.ex)return;
+  var any=S.results.some(function(r){return !!r;});
+  if(!any&&S.ei===0){delete store.resume[L.id];save();return;}
+  store.resume[L.id]={ei:S.ei,cur:L.ex[S.ei][1],results:S.results.slice(),timed:!!S.timed,
+    ms:S.timed?(S.pausedMs!=null?S.pausedMs:Date.now()-S.t0):0};
+  save();
+}
+function resumeFor(i){
+  var L=LEVELS[i],r=store.resume[L.id];
+  if(!r)return null;
+  var total=L.ex.length,res=r.results||[],ei=+r.ei||0;
+  if(!L.ex[ei]||L.ex[ei][1]!==r.cur)return null;
+  var next=ei;while(next<total&&res[next])next++;
+  return {r:r,next:next,done:res.filter(Boolean).length};
+}
+function startRow(){
+  var x=resumeFor(S.li),L=LEVELS[S.li];
+  if(!x)return '<div class="row"><button class="btn" type="button" data-act="start">Start building</button></div>';
+  var label=x.next>=L.ex.length?'Finish level':'Continue at sentence '+(x.next+1)+' of '+L.ex.length;
+  return '<div class="row"><button class="btn" type="button" data-act="resume">'+label+'</button><button class="btn2" type="button" data-act="start">Start over</button></div>';
+}
 function startLevel(i){
+  var L=LEVELS[i];
+  delete store.resume[L.id];
+  if(L.reroll)L.reroll();
   S.li=i;S.results=[];S.revealStruct=false;
-  S.timed=store.mode==='timed';S.t0=Date.now();S.levelMs=0;
+  S.timed=store.mode==='timed';S.pausedMs=null;S.t0=Date.now();S.levelMs=0;
   if(S.iv){clearInterval(S.iv);S.iv=null;}
   loadEx(0);
+  if(S.timed)S.iv=setInterval(updClock,250);
+  save();
+}
+function resumeLevel(i){
+  var x=resumeFor(i);
+  if(!x){startLevel(i);return;}
+  var L=LEVELS[i],r=x.r;
+  S.li=i;S.results=(r.results||[]).map(function(v){return v||null;});S.revealStruct=false;
+  S.timed=!!r.timed;S.pausedMs=null;S.t0=Date.now()-(+r.ms||0);S.levelMs=0;
+  if(S.iv){clearInterval(S.iv);S.iv=null;}
+  if(x.next>=L.ex.length){S.ei=L.ex.length-1;finishLevel();return;}
+  loadEx(x.next);
   if(S.timed)S.iv=setInterval(updClock,250);
 }
 function loadEx(n){
@@ -972,6 +1034,7 @@ function check(){
     S.solved=true;S.locked=true;S.usedAlt=hit!==cands[0];S.status=seq.map(function(){return 'ok';});S.fb=null;
     var peeked=LEVELS[S.li].hidden&&S.revealStruct;
     S.results[S.ei]=(S.attempts===1&&!S.hints&&!S.revealed&&!peeked)?'clean':'assisted';
+    saveResume();
   }else{
     var best=cands[0],bn=-1;
     cands.forEach(function(c){var n=c.filter(function(w,i){return w===seq[i];}).length;if(n>bn){bn=n;best=c;}});
@@ -1007,10 +1070,15 @@ function clearRail(){
 function nextEx(){
   var L=LEVELS[S.li];
   if(S.ei+1<L.ex.length){loadEx(S.ei+1);return;}
+  finishLevel();
+}
+function finishLevel(){
+  var L=LEVELS[S.li];
   var clean=S.results.filter(function(r){return r==='clean';}).length;
   var prev=store.done[L.id];
   if(!prev||clean>prev.clean)store.done[L.id]={clean:clean,total:L.ex.length};
   if(S.timed){S.levelMs=Date.now()-S.t0;var bt=store.bestTime[L.id];if(!bt||S.levelMs<bt)store.bestTime[L.id]=S.levelMs;}
+  delete store.resume[L.id];
   save();S.view='done';render();window.scrollTo(0,0);
 }
 
@@ -1101,6 +1169,7 @@ app.addEventListener('click',function(e){
   if(act==='home'){S.view='home';render();window.scrollTo(0,0);}
   else if(act==='level')openIntro(+b.dataset.i);
   else if(act==='start')startLevel(S.li);
+  else if(act==='resume')resumeLevel(S.li);
   else if(act==='check')check();
   else if(act==='hint')hint();
   else if(act==='clear')clearRail();
@@ -1114,7 +1183,7 @@ app.addEventListener('click',function(e){
   else if(act==='rnext')rNext();
   else if(act==='mode'){store.mode=b.dataset.m==='timed'?'timed':'relaxed';save();render();}
   else if(act==='openall'){store.openAll=true;save();render();}
-  else if(act==='reset'){store.done={};store.best={};store.bestTime={};store.openAll=false;save();render();}
+  else if(act==='reset'){store.done={};store.best={};store.bestTime={};store.resume={};store.openAll=false;save();render();}
 });
 document.getElementById('brand').addEventListener('click',function(){S.view='home';render();window.scrollTo(0,0);});
 document.getElementById('optPy').checked=store.py;
@@ -1171,6 +1240,17 @@ app.addEventListener('keydown',function(e){
   tap(el.dataset.uid);
   render();
 });
+
+/* ---------- keep the place when the tab is hidden or closed; the clock stops while away ---------- */
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){
+    if(S.view==='play'){S.pausedMs=Date.now()-S.t0;saveResume();}
+  }else if(S.pausedMs!=null){
+    if(S.view==='play')S.t0=Date.now()-S.pausedMs;
+    S.pausedMs=null;
+  }
+});
+window.addEventListener('pagehide',function(){if(S.view==='play')saveResume();});
 
 /* ---------- top bar: Statement and About ---------- */
 document.querySelector('.topbar').addEventListener('click',function(e){
